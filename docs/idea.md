@@ -140,7 +140,8 @@ Artwork:
 provider image URL
 
 Preview:
-provider preview URL (if available)
+provider audio stream URL (if available; example: a 30-second
+mp3 file hosted by the provider)
 
 External Link:
 provider song URL
@@ -188,6 +189,14 @@ The preview is loaded directly from the music provider.
 
 The application only provides the interface.
 
+Implementation rule:
+
+- The `previewUrl` field is a direct audio stream URL (such as an mp3 file) hosted by the provider.
+- The frontend renders it in a standard `<audio>` element inside the shout view.
+- The application must not re-host, download, or proxy the audio. It only points the player at the provider URL.
+- If the preview fails to load (for example, the URL expires, is blocked, or is unreachable), the application hides the player and shows the external provider link instead. This is not an error state; the fallback IS the intended behavior.
+- If the provider does not return a `previewUrl`, the "If No Preview Exists" case below applies.
+
 ---
 
 ## If No Preview Exists
@@ -219,6 +228,18 @@ Instead, it uses a provider interface.
 Example:
 
 ```typescript
+interface SongResult {
+    provider: string
+    providerSongId: string
+    title: string
+    artist: string
+    album: string
+    artworkUrl: string
+    previewUrl: string | null      // direct audio stream URL, or null if provider has none
+    externalUrl: string
+    duration: number               // seconds, if available
+}
+
 interface MusicProvider {
 
     searchSongs(query: string): Promise<SongResult[]>
@@ -227,6 +248,8 @@ interface MusicProvider {
 
 }
 ```
+
+Every `SongResult` returned by a provider MUST include these fields. `previewUrl` is the direct audio stream URL used for in-app preview playback; it may be `null` when the provider offers no preview for that song.
 
 Example implementation:
 
@@ -317,35 +340,9 @@ Open in Spotify
 
 # 7. Reactions
 
-Recipients can react to received shouts.
-
-Available reactions:
-
-* ❤️ Heart
-* 🔥 Fire
-* 🎧 Listening
+Recipients can react to received shouts with emoji of choice.
 
 A recipient can have one reaction per shout.
-
----
-
-# 8. Reply With a Song
-
-A recipient can respond by sending another shout.
-
-This creates a music conversation.
-
-Example:
-
-```
-Alex → Mr. Brightside
-
-Jordan → Somebody Told Me
-
-Alex → When You Were Young
-```
-
-The conversation is created through songs rather than text messages.
 
 ---
 
@@ -492,7 +489,7 @@ Fields:
 * artist
 * album
 * artworkUrl
-* previewUrl
+* previewUrl (direct audio stream URL from the provider, or null if unavailable)
 * externalUrl
 * duration
 * createdAt

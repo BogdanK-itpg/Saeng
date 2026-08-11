@@ -1,0 +1,14 @@
+# Song Shout — Supabase CLI configuration
+
+# The remote project reference (from Supabase Dashboard → Settings → General).
+# Run: `supabase link --project-ref <ref>` to bind it locally.
+project_id = "song-shout"
+
+[db.migrations]
+enabled = true
+
+[storage]
+enabled = true
+
+[realtime]
+enabled = true
