@@ -1,4 +1,4 @@
-export type ProviderId = "spotify";
+export type ProviderId = "itunes" | "spotify";
 
 export interface Profile {
   id: string;
