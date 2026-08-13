@@ -628,9 +628,7 @@ Users can:
 * Search songs
 * Send shouts
 * Receive notifications
-* View shout history
 * React to shouts
-* Reply with another shout
 
 ---
 
@@ -675,9 +673,7 @@ Included:
 * External music links
 * Preview playback when supported
 * Reactions
-* Replying with songs
 * Profiles
-* Shout history
 
 Explicitly excluded:
 

@@ -745,25 +745,6 @@ Use a database constraint to prevent duplicate reactions for the same user/Shout
 
 ---
 
-# PHASE 10 — REPLY WITH ANOTHER SHOUT
-
-Implement the V1 requirement allowing a received Shout to be answered with another song/Shout.
-
-Do not turn this into a general messaging system.
-
-A reply is still a Shout.
-
-Do not introduce:
-
-* Chat
-* Message threads
-* Comments
-* Group conversations
-
-unless explicitly requested later.
-
----
-
 # PHASE 11 — DASHBOARD
 
 Implement the dashboard.
@@ -782,20 +763,7 @@ Keep the dashboard focused rather than turning it into a generic social-media fe
 
 ---
 
-# PHASE 12 — SHOUT HISTORY
-
-Implement the user's Shout history.
-
-Support appropriate views for:
-
-* Shouts sent
-* Shouts received
-
-Use pagination or another scalable loading strategy rather than loading an unlimited history into the browser.
-
----
-
-# PHASE 13 — MAIN APPLICATION PAGES
+# PHASE 11 — MAIN APPLICATION PAGES
 
 Implement the required pages:
 
@@ -852,7 +820,7 @@ Implement the required pages:
 
 ---
 
-# PHASE 14 — UX, ACCESSIBILITY & RESPONSIVENESS
+# PHASE 12 — UX, ACCESSIBILITY & RESPONSIVENESS
 
 The application must be:
 
@@ -885,7 +853,7 @@ Handle:
 
 ---
 
-# PHASE 15 — SECURITY REVIEW
+# PHASE 13 — SECURITY REVIEW
 
 Before declaring the project complete, perform a security review.
 
@@ -912,7 +880,7 @@ Never assume that hiding a button in the frontend is authorization.
 
 ---
 
-# PHASE 16 — TESTING
+# PHASE 14 — TESTING
 
 Create a practical testing strategy.
 
@@ -972,7 +940,7 @@ Recipient replies with another shout
 
 ---
 
-# PHASE 17 — DEPLOYMENT
+# PHASE 15 — DEPLOYMENT
 
 Prepare the project for Vercel deployment.
 
@@ -1175,7 +1143,6 @@ Pay attention to:
 * Song search
 * Dashboard queries
 * Notification queries
-* Shout history
 * Friend search
 * Database indexes
 * Image loading
@@ -1240,14 +1207,12 @@ Maintain a checklist such as:
 [ ] Phase 7 — Shout view/playback
 [ ] Phase 8 — Notifications
 [ ] Phase 9 — Reactions
-[ ] Phase 10 — Reply Shout
-[ ] Phase 11 — Dashboard
-[ ] Phase 12 — History
-[ ] Phase 13 — Pages
-[ ] Phase 14 — UX/accessibility
-[ ] Phase 15 — Security
-[ ] Phase 16 — Testing
-[ ] Phase 17 — Deployment
+[ ] Phase 10 — Dashboard
+[ ] Phase 11 — Pages
+[ ] Phase 12 — UX/accessibility
+[ ] Phase 13 — Security
+[ ] Phase 14 — Testing
+[ ] Phase 15 — Deployment
 ```
 
 ---
@@ -1372,8 +1337,6 @@ Song Shout is considered complete only when:
 * Preview playback works where supported
 * External provider fallback works
 * Reactions work
-* Replying with another Shout works
-* Shout history works
 
 ### Architecture
 
