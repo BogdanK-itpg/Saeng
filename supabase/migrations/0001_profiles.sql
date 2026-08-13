@@ -57,7 +57,7 @@ begin
   insert into public.profiles (id, username, display_name)
   values (
     new.id,
-    coalesce(raw_username, 'u' || replace(gen_random_uuid()::text, '-', '')),
+    coalesce(raw_username, 'u' || left(replace(gen_random_uuid()::text, '-', ''), 12)),
     left(default_display, 50)
   )
   on conflict (id) do nothing;

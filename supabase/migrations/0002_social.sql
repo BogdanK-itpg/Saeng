@@ -1,23 +1,6 @@
 -- Social: friend_requests + friendships.
 
 -- ---------------------------------------------------------------------------
--- Helper: are two users friends?
--- ---------------------------------------------------------------------------
-create or replace function public.is_friend(a uuid, b uuid)
-returns boolean
-language sql
-stable
-security definer
-set search_path = ''
-as $$
-  select exists (
-    select 1
-    from public.friendships
-    where user_id = a and friend_id = b
-  );
-$$;
-
--- ---------------------------------------------------------------------------
 -- friend_requests
 -- ---------------------------------------------------------------------------
 create table public.friend_requests (
@@ -33,11 +16,10 @@ create table public.friend_requests (
     check (sender_id <> receiver_id)
 );
 
--- One request per directed pair at a time.
-create unique index friend_requests_directed_key
-  on public.friend_requests (sender_id, receiver_id);
-
--- No two pending requests between the same pair in either direction.
+-- No two pending requests between the same pair in either direction, and at
+-- most one pending request per directed pair. A resolved request (accepted or
+-- declined) does not block a future request: the uniqueness applies only to
+-- pending rows, so a sender can re-request after a decline or a removal.
 create unique index friend_requests_pending_pair_key
   on public.friend_requests (least(sender_id, receiver_id), greatest(sender_id, receiver_id))
   where status = 'pending';
@@ -63,3 +45,20 @@ create table public.friendships (
 create unique index friendships_pair_key on public.friendships (user_id, friend_id);
 
 create index friendships_friend_idx on public.friendships (friend_id);
+
+-- ---------------------------------------------------------------------------
+-- Helper: are two users friends? (Defined after friendships exists.)
+-- ---------------------------------------------------------------------------
+create or replace function public.is_friend(a uuid, b uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.friendships
+    where user_id = a and friend_id = b
+  );
+$$;
