@@ -5,8 +5,11 @@ import type {
   Notification,
   NotificationType,
   Shout,
+  ShoutWithDetails,
   SongReference,
 } from "@/types/domain";
+
+import { mapProfile, PROFILE_COLUMNS, type ProfileRow } from "./_row-mappers";
 
 /** Looks up a normalized song reference by provider id, for re-use. */
 export async function findSongByProvider(
@@ -219,6 +222,115 @@ export async function listShoutsReceived(
     throw AppError.infrastructure("Failed to load shouts", error.code);
   }
   return (data ?? []).map(mapShout);
+}
+
+const SHOUT_DETAIL_COLUMNS = `
+  id, sender_id, receiver_id, song_reference_id, message, sent_at, seen_at, reply_to_shout_id,
+  song:song_references(id, provider, provider_song_id, title, artist, album, artwork_url, preview_url, external_url, duration, created_at),
+  sender:profiles!shouts_sender_id_fkey(${PROFILE_COLUMNS}),
+  receiver:profiles!shouts_receiver_id_fkey(${PROFILE_COLUMNS})
+` as const;
+
+type ShoutDetailRow = {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  song_reference_id: string;
+  message: string | null;
+  sent_at: string;
+  seen_at: string | null;
+  reply_to_shout_id: string | null;
+  song: {
+    id: string;
+    provider: string;
+    provider_song_id: string;
+    title: string;
+    artist: string;
+    album: string | null;
+    artwork_url: string | null;
+    preview_url: string | null;
+    external_url: string;
+    duration: number | null;
+    created_at: string;
+  };
+  sender: ProfileRow;
+  receiver: ProfileRow;
+};
+
+// PostgREST returns to-one embedded FK joins as objects, not arrays. The
+// untyped query builder's inferred rows are cast to the actual shape here.
+function mapDetailRow(
+  row: Pick<
+    ShoutDetailRow,
+    "id" | "sender_id" | "receiver_id" | "song_reference_id" | "message" | "sent_at" | "seen_at" | "reply_to_shout_id" | "song" | "sender" | "receiver"
+  >,
+): ShoutWithDetails {
+  const song: SongReference = {
+    id: row.song.id,
+    provider: row.song.provider as SongReference["provider"],
+    providerSongId: row.song.provider_song_id,
+    title: row.song.title,
+    artist: row.song.artist,
+    album: row.song.album,
+    artworkUrl: row.song.artwork_url,
+    previewUrl: row.song.preview_url,
+    externalUrl: row.song.external_url,
+    duration: row.song.duration,
+    createdAt: row.song.created_at,
+  };
+
+  return {
+    ...mapShout(row),
+    song,
+    sender: mapProfile(row.sender),
+    receiver: mapProfile(row.receiver),
+    myReaction: null,
+    reactions: [],
+  };
+}
+
+/** Returns a shout with its song + sender/recipient, if the user is a participant. */
+export async function getShoutWithDetails(
+  userId: string,
+  shoutId: string,
+): Promise<ShoutWithDetails | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("shouts")
+    .select(SHOUT_DETAIL_COLUMNS)
+    .eq("id", shoutId)
+    .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+    .maybeSingle();
+
+  if (error) {
+    throw AppError.infrastructure("Failed to load shout", error.code);
+  }
+  if (!data) return null;
+
+  return mapDetailRow(data as unknown as ShoutDetailRow);
+}
+
+/** Latest shouts the user received, joined with song + sender. */
+export async function listReceivedShoutsWithDetails(
+  userId: string,
+  { limit = 20 }: { limit?: number } = {},
+): Promise<Array<ShoutWithDetails & { senderName: string }>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("shouts")
+    .select(SHOUT_DETAIL_COLUMNS)
+    .eq("receiver_id", userId)
+    .order("sent_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    throw AppError.infrastructure("Failed to load shouts", error.code);
+  }
+
+  return ((data ?? []) as unknown as ShoutDetailRow[]).map((row) => ({
+    ...mapDetailRow(row),
+    senderName: row.sender.display_name ?? "Someone",
+  }));
 }
 
 export async function createNotification(input: {

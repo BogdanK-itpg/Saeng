@@ -112,6 +112,6 @@ export async function listNotificationsWithActors(
 
   return (data ?? []).map((row) => ({
     ...mapNotification(row),
-    actor: row.actor?.[0] ? mapProfile(row.actor[0]) : null,
+    actor: row.actor ? mapProfile(row.actor as unknown as Parameters<typeof mapProfile>[0]) : null,
   }));
 }
