@@ -2,13 +2,15 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+import { getPublicSupabaseKey, getSupabaseUrl } from "./env";
+
 /**
  * Refreshes the Supabase session (if close to expiring, a no-op otherwise)
  * and returns the refreshed response plus the authenticated user, if any.
  */
 export async function updateSession(request: NextRequest) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = getSupabaseUrl();
+  const anonKey = getPublicSupabaseKey();
 
   if (!url || !anonKey) {
     return { response: NextResponse.next({ request }), user: null };
