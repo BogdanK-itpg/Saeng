@@ -18,8 +18,15 @@ export function LoginForm({ next }: { next?: string }) {
       {state.error && <Alert>{state.error}</Alert>}
 
       <div className="space-y-1.5">
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" autoComplete="email" required />
+        <Label htmlFor="username">Username</Label>
+        <Input
+          id="username"
+          name="username"
+          type="text"
+          autoComplete="username"
+          placeholder="e.g. alex_baumann"
+          required
+        />
       </div>
 
       <div className="space-y-1.5">
@@ -33,6 +40,8 @@ export function LoginForm({ next }: { next?: string }) {
         />
       </div>
 
+      {/* Email-driven password reset disabled for future development. */}
+      {/*
       <div className="flex items-center justify-between text-sm">
         <Link
           href="/forgot-password"
@@ -41,6 +50,7 @@ export function LoginForm({ next }: { next?: string }) {
           Forgot password?
         </Link>
       </div>
+      */}
 
       <Button
         type="submit"

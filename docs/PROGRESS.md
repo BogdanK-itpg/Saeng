@@ -1,11 +1,46 @@
 # Song Shout — Progress & Handoff
 
-Last updated: 2026-08-13
+Last updated: 2026-08-20
 
 This file records what has been built, what has been verified, and exactly where
 the next developer/session should continue. The source of truth for the product
 is `docs/idea.md`; the master process is `docs/WORKPLAN.md`; the full plan is
 `docs/development-plan.md`.
+
+---
+
+## Recent change — username-based auth + email sending disabled (2026-08-20)
+
+Auth is now **username + password** only (no email field anywhere in the UI).
+
+- **Login/register** take `username`, `display name`, and `password`.
+- Supabase Auth still requires an email under the hood, so each username maps to
+  a **synthetic internal email** `<username>@songshout.local`, derived
+  deterministically by `authEmailForUsername()` in
+  `src/lib/auth/username-email.ts`. Users never see or type it. This keeps
+  sessions, `auth.uid()` RLS, and Supabase Auth as the password authority.
+- **Username uniqueness** is enforced two ways: a pre-check in
+  `registerAction` (admin client, friendly "already taken" error) and the DB
+  `profiles_username_key` unique index (backstop).
+- **Email sending is commented out for future development**:
+  - `src/lib/resend.ts` — entire file commented (the `resend` package stays in
+    `package.json` so it type-checks when restored).
+  - `forgotPasswordAction` (auth.ts), forgot-password + reset-password pages and
+    forms commented out; `/forgot-password` and `/auth/reset-password` now
+    render `notFound()`.
+  - `RESEND_API_KEY` commented out in `.env.example`; "Contact email" section
+    on the profile page commented out.
+- `proxy.ts` `AUTH_PAGES` no longer includes `/forgot-password`.
+
+**Required manual step (done on the dashboard):** Supabase **Authentication →
+Providers → Email → "Confirm email" must be OFF** — otherwise signup never
+returns a session and the synthetic accounts can never be confirmed. Verified
+live: signUp returns a session, the profile trigger fires, login by username
+works, duplicate-username pre-check works.
+
+**Caveat:** existing accounts created with real emails (e.g. the old
+`alice6`/`bob6` test users) can no longer log in by username — re-register them
+through the new flow.
 
 ---
 
@@ -15,8 +50,8 @@ is `docs/idea.md`; the master process is `docs/WORKPLAN.md`; the full plan is
 [x] Phase 0  — Analysis & architecture (docs/development-plan.md created)
 [x] Phase 1  — Next.js + Supabase initialization (scaffolded, committed)
 [x] Phase 2  — Database & domain foundation (migrations applied + verified)
-[x] Phase 3  — Authentication & user profiles (code done, not yet tested live)
-[x] Phase 4  — Friend system (code done, live auth test pending)
+[x] Phase 3  — Authentication & user profiles (username-based auth; register/login verified live)
+[x] Phase 4  — Friend system (code done, live two-user browser test pending)
 [x] Phase 5  — Music provider (iTunes provider live; Spotify deferred)
 [x] Phase 6  — Send Shout (action + composer + /send page)
 [x] Phase 7  — Shout view & playback (detail page + audio player + dashboard feed)
@@ -49,7 +84,7 @@ Next.js 16.3 app (App Router, TypeScript, Tailwind v4, ESLint, `src/`, `@/*` ali
   - `src/lib/supabase/admin.ts` — **server-only** service-role client (throws if key missing)
   - `src/proxy.ts` — Next 16 proxy (renamed from `middleware`); guards `/dashboard`,
     `/friends`, `/send`, `/shouts`, `/notifications`, `/profile`; redirects signed-in
-    users away from `/login`, `/register`, `/forgot-password`
+    users away from `/login`, `/register`
 - `.env.example` (git-ignored real values live in `.env.local`)
 - `supabase/config.toml`, `supabase/migrations/README.md`
 
@@ -106,14 +141,19 @@ Domain code:
   `notifications.ts`, `reactions.ts`, `profiles.ts`
 - `src/lib/auth/current-user.ts` — `getCurrentUser()` / `requireUser()`
 
-### Phase 3 — Authentication & profiles (done; live test pending)
+### Phase 3 — Authentication & profiles (done; register/login verified live 2026-08-20)
 
-- `src/lib/validation/schemas.ts` — zod schemas (register, login, forgot/reset
-  password, profile, shout message, reaction)
-- `src/app/actions/auth.ts` — register, login, forgot password, sign out (server actions)
+- `src/lib/validation/schemas.ts` — zod schemas (register, login, profile, shout
+  message, reaction)
+- `src/app/actions/auth.ts` — register, login, sign out (server actions)
 - `src/app/actions/profile.ts` — update profile, set avatar
-- Auth UI: `src/app/(auth)/` login / register / forgot-password pages + forms;
-  `src/app/auth/callback/route.ts`; `src/app/auth/reset-password/` page + form
+- Auth UI: `src/app/(auth)/` login / register pages + forms;
+  `src/app/auth/callback/route.ts`
+- Auth is **username + password** based: usernames map to a synthetic internal
+  email `<username>@songshout.local` (`src/lib/auth/username-email.ts`) because
+  Supabase Auth requires an email. See the "Recent change" section above.
+- Email-driven flows (forgot/reset password, Resend) are commented out for
+  future development; `/forgot-password` and `/auth/reset-password` render 404.
 - `src/app/(app)/layout.tsx` — authenticated shell with nav + avatar + sign-out
 - `src/app/(app)/profile/page.tsx` — profile edit + avatar upload
 - `src/app/(app)/dashboard/page.tsx` — received shouts + send action (Phase 7)
@@ -279,7 +319,7 @@ Verified
 | `npx tsc --noEmit` | ✅ passes |
 | `npm run build` | ✅ passes |
 | Migrations applied to Supabase | ✅ all 10 on `socrwlpwacahxioyboiv` (2026-08-13) |
-| Auth register/login flow tested live | ✅ two-user signup verified via admin client (profiles created) |
+| Auth register/login flow tested live | ✅ username-based: signup returns a session (confirm-email OFF), profile trigger fires, login by username works, duplicate username blocked (2026-08-20) |
 | Friend system smoke test (routes/proxy) | ✅ unauthenticated `/friends` → 307; build passes |
 | Music provider (iTunes) live search | ✅ normalized results from real API; route 401 when unauthenticated |
 | Send Shout DB write-path | ✅ friendship check → song upsert → shout insert → notification insert, all verified against remote |
@@ -303,16 +343,12 @@ Verified
 ### 2. Verify Phase 3 + Phase 4 live (browser)
 
 The backend is in place and the DB write-paths were exercised via the admin
-client, but a full two-user browser pass is still useful. Two test users
-already exist (created via the admin client, pre-confirmed):
+client, but a full two-user browser pass is still useful.
 
-| Email | Password | Username |
-| --- | --- | --- |
-| `alice.phase6@example.com` | `Password123!` | `alice6` |
-| `bob.phase6@example.com` | `Password123!` | `bob6` |
-
-They are already friends (created in the Phase 6 DB test), so you can go
-straight to `/send` and shout at bob. Steps:
+NOTE (2026-08-20): with username-based auth, the old `alice6`/`bob6` accounts
+(created with real emails) can no longer log in by username. Re-register two
+fresh users through `/register` (username + display name + password), create a
+friendship via `/friends`, then run the flows below. Steps:
 
 - `npm run dev`
 - Log in as both users (two browsers / incognito windows)
@@ -354,15 +390,13 @@ With shouts flow working, surface the existing notification rows:
 
 Remaining smaller gaps (deferred):
 
-- **Email sending hits Supabase's built-in rate limit.** The default SMTP is
-  capped at **2 emails/hour** (and only sends to addresses in the project's
-  org); test sign-ups hit "email rate limit exceeded". Fixes: (a) enable the
-  Resend integration or custom SMTP (Host `smtp.resend.com`, port `465`, user
-  `resend`, password = Resend API key) at Dashboard → Authentication → Email →
-  SMTP Settings, then raise the protective 30/h Supabase limit at
-  Authentication → Rate Limits; or (b) for local dev only, disable "Confirm
-  email" in Authentication → Providers → Email so sign-ups need no email at
-  all. No app-code change is required for either option.
+- **Email delivery — fully disabled (2026-08-20).** Auth is username-based and
+  the synthetic accounts have no real inbox, so no confirmation/reset email can
+  be sent. "Confirm email" is OFF in the Supabase dashboard. All app-level email
+  code (`src/lib/resend.ts`, forgot/reset-password flows) is commented out for
+  future development. The earlier Brevo SMTP plan (2026-08-13) is archived — if
+  email is ever re-enabled, restore those steps; otherwise simply drop the
+  `resend` package + helper + env vars if app-sent emails aren't wanted.
 - Avatar upload deletes are not wired to remove the old object (new uploads just
   add a new file). Acceptable for V1.
 - Playing the "most popular" segment of a song is not possible with the iTunes
@@ -412,4 +446,9 @@ npx supabase link --project-ref socrwlpwacahxioyboiv   # link remote
 - `FriendSearch` debounces writes to the `?q=` search param; results render as a
   Server Component so the paged reload keeps search/request state consistent after
   server actions `revalidatePath("/friends")`.
+- Supabase Auth requires an **email** for `signUp`/`signInWithPassword`, but the
+  app is username-based — usernames map deterministically to
+  `<username>@songshout.local` (`authEmailForUsername`). Keep this derivation in
+  one place; never show it in the UI. "Confirm email" must stay OFF, or signup
+  never returns a session.
 - Line endings splash: Windows git warns about CRLF — harmless.

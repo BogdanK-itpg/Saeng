@@ -44,11 +44,6 @@ export function RegisterForm() {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" autoComplete="email" required />
-      </div>
-
-      <div className="space-y-1.5">
         <Label htmlFor="password">Password</Label>
         <Input
           id="password"

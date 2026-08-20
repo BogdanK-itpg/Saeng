@@ -16,8 +16,6 @@ export const displayNameSchema = z
   .min(1, "Display name is required")
   .max(50, "Display name must be at most 50 characters");
 
-export const emailSchema = z.string().trim().email("Enter a valid email address");
-
 export const passwordSchema = z
   .string()
   .min(8, "Password must be at least 8 characters")
@@ -26,22 +24,27 @@ export const passwordSchema = z
 export const registerSchema = z.object({
   username: usernameSchema,
   displayName: displayNameSchema,
-  email: emailSchema,
   password: passwordSchema,
 });
 
 export const loginSchema = z.object({
-  email: emailSchema,
+  username: usernameSchema,
   password: z.string().min(1, "Password is required"),
 });
 
-export const forgotPasswordSchema = z.object({
-  email: emailSchema,
-});
-
-export const resetPasswordSchema = z.object({
-  password: passwordSchema,
-});
+// ---------------------------------------------------------------------------
+// Email-related schemas (email sending disabled for future development —
+// auth is username-based as of 2026-08-20). Re-enable alongside resend.ts.
+// ---------------------------------------------------------------------------
+// export const emailSchema = z.string().trim().email("Enter a valid email address");
+//
+// export const forgotPasswordSchema = z.object({
+//   email: emailSchema,
+// });
+//
+// export const resetPasswordSchema = z.object({
+//   password: passwordSchema,
+// });
 
 export const profileSchema = z.object({
   username: usernameSchema,
@@ -64,5 +67,5 @@ export const reactionSchema = z
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
-export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+// export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ProfileInput = z.infer<typeof profileSchema>;

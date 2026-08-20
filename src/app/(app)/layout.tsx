@@ -59,7 +59,7 @@ export default async function AppLayout({
                 className="h-7 w-7 rounded-full object-cover ring-1 ring-zinc-200 dark:ring-zinc-800"
               />
               <span className="hidden sm:inline">
-                {profile?.display_name ?? user.email}
+                {profile?.display_name ?? user.user_metadata?.username ?? "Account"}
               </span>
             </Link>
             <SignOutButton />

@@ -12,7 +12,8 @@ const PROTECTED_PREFIXES = [
   "/profile",
 ];
 
-const AUTH_PAGES = ["/login", "/register", "/forgot-password"];
+// "/forgot-password" removed — email-driven reset is disabled (2026-08-20).
+const AUTH_PAGES = ["/login", "/register"];
 
 /**
  * Proxy (Next 16 middleware): refreshes the Supabase session and guards

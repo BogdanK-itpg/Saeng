@@ -1,36 +1,120 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Song Shout
 
-## Getting Started
+A social web app where friends communicate by sending each other songs instead
+of (or alongside) text. Pick a friend → search for a song → send a **Shout**.
+The app is *not* a music streaming platform — it stores song metadata + provider
+references and plays provider-hosted previews only.
 
-First, run the development server:
+Built as a portfolio project with a strong focus on clean architecture,
+provider abstraction, and server-side security (Supabase RLS).
+
+## Tech stack
+
+- **Frontend:** Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4
+- **Backend:** Supabase (Auth, PostgreSQL, Storage for avatars, Realtime)
+- **Music:** provider abstraction layer; **iTunes Search API** is the active
+  provider (no credentials). Spotify is a drop-in later.
+
+## Getting started
+
+### Prerequisites
+
+- Node.js 20+
+- A Supabase project (or `supabase` CLI for local dev)
+
+### 1. Install dependencies
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Configure environment variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Copy `.env.example` to `.env.local` and fill in the values:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Where to get it | Public? |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API | ✅ safe for browser |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase → Project Settings → API (new-style `sb_publishable_…` key) | ✅ safe for browser |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API (`service_role`) | ❌ server-only — never expose |
+| `NEXT_PUBLIC_APP_URL` | Your app URL, e.g. `http://localhost:3000` | ✅ safe for browser |
 
-## Learn More
+> Spotify credentials are **not** required — the active music provider is the
+> public iTunes Search API.
 
-To learn more about Next.js, take a look at the following resources:
+### 3. Apply database migrations
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npx supabase login
+npx supabase link --project-ref <your-project-ref>
+npx supabase db push
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Migrations live in `supabase/migrations/` and create: `profiles`,
+`friend_requests`, `friendships`, `song_references`, `shouts`, `reactions`,
+`notifications`, plus RLS policies, the avatars storage bucket, and the
+`auth.users → profiles` trigger.
 
-## Deploy on Vercel
+### 4. Required Supabase settings
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Authentication → Providers → Email → "Confirm email" must be OFF.** Auth is
+  username-based and no confirmation email is sent; with it ON, signup never
+  returns a session.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 5. Run
+
+```bash
+npm run dev        # http://localhost:3000
+```
+
+## Authentication model
+
+Login and registration use **username + password only** (display name is shown
+to other users; username is unique and used for searching).
+
+Supabase Auth requires an email internally, so each username maps to a
+deterministic **synthetic internal email** `<username>@songshout.local`
+(see `src/lib/auth/username-email.ts`). Users never see or type this address;
+it keeps sessions, `auth.uid()` RLS, and Supabase Auth as the password
+authority. Username uniqueness is enforced by a server pre-check plus a DB
+unique index.
+
+Email sending is **disabled** for future development (the `resend` client and
+forgot/reset-password flows are commented out). "Confirm email" is off, so no
+confirmation or reset email is used.
+
+## Commands
+
+```bash
+npm run dev        # local dev server
+npm run lint       # eslint
+npx tsc --noEmit   # typecheck
+npm run build      # production build
+npx supabase db push   # apply migrations
+```
+
+## Project structure
+
+```
+src/
+  app/
+    (auth)/          # login / register
+    (app)/           # authenticated pages: dashboard, friends, send, profile, shouts/[id]
+    actions/         # server actions (auth, profile, friends, shouts)
+    api/songs/search # authenticated song-search route
+    auth/            # auth callbacks
+  components/        # auth, friends, shouts, songs, profile, ui primitives
+  lib/               # supabase clients, music providers, auth helpers, validation
+  services/          # domain services (friends, shouts, notifications, reactions, profiles)
+  types/             # domain types
+  proxy.ts           # Next 16 middleware (session refresh + route guards)
+supabase/migrations/ # PostgreSQL schema + RLS
+docs/                # idea.md (spec), WORKPLAN.md, development-plan.md, PROGRESS.md
+```
+
+## Documentation
+
+- `docs/idea.md` — product specification
+- `docs/WORKPLAN.md` — master development process & phases
+- `docs/development-plan.md` — full implementation plan
+- `docs/PROGRESS.md` — what is done, verified, and what's next
