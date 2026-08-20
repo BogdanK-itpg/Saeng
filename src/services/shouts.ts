@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type {
   Profile,
+  ReactionWithActor,
   Shout,
   ShoutWithDetails,
   SongReference,
@@ -327,6 +328,77 @@ export async function listReceivedShoutsWithDetails(
     ...mapDetailRow(row),
     senderName: row.sender.display_name ?? "Someone",
   }));
+}
+
+const REACTION_EMBED = `
+  reactions:reactions!reactions_shout_id_fkey(
+    id, reaction_type, created_at,
+    user:profiles!reactions_user_id_fkey(${PROFILE_COLUMNS})
+  )
+` as const;
+
+const SENT_DETAIL_COLUMNS = `${SHOUT_DETAIL_COLUMNS}, ${REACTION_EMBED}` as const;
+
+type ReactionEmbed = {
+  id: string;
+  reaction_type: string;
+  created_at: string;
+  user: ProfileRow;
+};
+
+type SentShoutDetailRow = ShoutDetailRow & {
+  reactions: ReactionEmbed[];
+};
+
+function mapEmbeddedReaction(
+  row: ReactionEmbed,
+  shoutId: string,
+): ReactionWithActor {
+  return {
+    id: row.id,
+    shoutId,
+    userId: row.user.id,
+    reactionType: row.reaction_type,
+    createdAt: row.created_at,
+    user: {
+      id: row.user.id,
+      username: row.user.username,
+      displayName: row.user.display_name,
+      avatarUrl: row.user.avatar_url,
+    },
+  };
+}
+
+/** Latest shouts the user sent, joined with song + receiver + reactions. */
+export async function listSentShoutsWithDetails(
+  userId: string,
+  { limit = 20 }: { limit?: number } = {},
+): Promise<
+  Array<ShoutWithDetails & { receiverName: string; reactions: ReactionWithActor[] }>
+> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("shouts")
+    .select(SENT_DETAIL_COLUMNS)
+    .eq("sender_id", userId)
+    .order("sent_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    throw AppError.infrastructure("Failed to load shouts", error.code);
+  }
+
+  return ((data ?? []) as unknown as SentShoutDetailRow[]).map((row) => {
+    const detail = mapDetailRow(row);
+    detail.reactions = (row.reactions ?? []).map((r) =>
+      mapEmbeddedReaction(r, row.id),
+    );
+    return {
+      ...detail,
+      receiverName: row.receiver.display_name ?? "Someone",
+      reactions: detail.reactions as ReactionWithActor[],
+    };
+  });
 }
 
 export interface RecentShoutActivity {

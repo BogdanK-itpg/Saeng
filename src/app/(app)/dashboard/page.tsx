@@ -2,9 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { requireUser } from "@/lib/auth/current-user";
-import { listReceivedShoutsWithDetails } from "@/services/shouts";
+import {
+  listReceivedShoutsWithDetails,
+  listSentShoutsWithDetails,
+} from "@/services/shouts";
 import { listFriends } from "@/services/friends";
-import { ReceivedShoutCard } from "@/components/shouts/shout-card";
+import { ReceivedShoutCard, SentShoutCard } from "@/components/shouts/shout-card";
 import { ProfileAvatar } from "@/components/friends/profile-avatar";
 import { Button } from "@/components/ui/button";
 
@@ -12,8 +15,9 @@ export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const [received, friends] = await Promise.all([
+  const [received, sent, friends] = await Promise.all([
     listReceivedShoutsWithDetails(user.id, { limit: 10 }),
+    listSentShoutsWithDetails(user.id, { limit: 10 }),
     listFriends(user.id),
   ]);
 
@@ -89,6 +93,29 @@ export default async function DashboardPage() {
                 key={shout.id}
                 shout={shout}
                 senderName={shout.senderName}
+              />
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+          Sent ({sent.length})
+        </h2>
+        {sent.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-zinc-300 p-8 text-center dark:border-zinc-700">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              Nothing sent yet. Shout a song at a friend to get things going.
+            </p>
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {sent.map((shout) => (
+              <SentShoutCard
+                key={shout.id}
+                shout={shout}
+                receiverName={shout.receiverName}
               />
             ))}
           </ul>

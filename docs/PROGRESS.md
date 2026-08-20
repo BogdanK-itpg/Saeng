@@ -9,6 +9,31 @@ is `docs/idea.md`; the master process is `docs/WORKPLAN.md`; the full plan is
 
 ---
 
+## Recent change — Dashboard Sent section + custom reaction (2026-08-20)
+
+The dashboard now has a **Sent** section below **Received** (each up to 10
+shouts), and the reaction picker accepts a custom emoji typed from the keyboard.
+
+- `listSentShoutsWithDetails` in `src/services/shouts.ts` — shouts the user
+  sent, joined with song + receiver, plus the recipient's reactions embedded
+  (`reactions!reactions_shout_id_fkey` → `profiles!reactions_user_id_fkey`).
+  Reactions RLS allows both participants to read, so the sender can see them.
+- `SentShoutCard` in `src/components/shouts/shout-card.tsx` — same card layout
+  as received (artwork, title, artist, inline audio player, glow) with a
+  **Reaction** summary showing who reacted and with what emoji (read-only —
+  only the recipient can react).
+- `src/app/(app)/dashboard/page.tsx` — fetches sent + received in parallel,
+  renders both sections with counts.
+- `src/components/shouts/reaction-bar.tsx` — the recipient picker now also has a
+  "type your own" input (max 16 chars) + React button; submitting calls
+  `setReactionAction` like the presets (same toggle-to-remove behavior).
+
+Verified: lint ✅ · tsc ✅ · build ✅; live PostgREST query against remote
+confirmed the reaction embed returns `reactions[]` with the actor `user`
+object; `/dashboard` → **307** to `/login` unauthenticated.
+
+---
+
 ## Recent change — Phase 8 notifications + Phase 11 profile stats (2026-08-20)
 
 Phase 8 (previously deferred) and the Phase 11 page work both landed.
@@ -449,6 +474,7 @@ adds a reaction, and surface on `/notifications` (Phase 8 landed 2026-08-20).
 | Reactions (Phase 9) | ✅ recipient add/change/remove works; sender blocked by RLS; lint/tsc/build pass (2026-08-20) |
 | Notifications (Phase 8) | ✅ page + badge + realtime wired; friend_request/reaction notifications created; `/notifications` → 307 unauth; lint/tsc/build pass (2026-08-20) |
 | Profile stats + activity (Phase 11) | ✅ stats grid + recent activity render; `/profile` → 307 unauth; lint/tsc/build pass (2026-08-20) |
+| Dashboard Sent section + reactions | ✅ sent shouts listed with recipient's reaction; custom emoji input in picker; embed query shape verified live; `/dashboard` → 307 unauth (2026-08-20) |
 
 ---
 
