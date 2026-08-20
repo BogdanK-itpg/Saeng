@@ -30,6 +30,7 @@ export function FriendSearch({ initialQuery }: { initialQuery: string }) {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="Search by username…"
+        aria-label="Search by username"
         autoComplete="off"
         spellCheck={false}
       />

@@ -29,8 +29,9 @@ export function SendShoutComposer({
       <input type="hidden" name="song" value={selected ? JSON.stringify(selected) : ""} />
 
       <div className="space-y-2">
-        <Label>Choose a friend</Label>
+        <Label htmlFor="receiverId">Choose a friend</Label>
         <select
+          id="receiverId"
           name="receiverId"
           required
           defaultValue={preselectedFriendId ?? ""}

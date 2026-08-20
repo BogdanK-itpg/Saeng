@@ -105,6 +105,32 @@ export function AudioPlayer({
     setCurrentTime(ratio * duration);
   }
 
+  function seekBy(delta: number) {
+    const audio = audioRef.current;
+    if (!audio || !duration) return;
+    const next = Math.min(duration, Math.max(0, currentTime + delta));
+    audio.currentTime = next;
+    setCurrentTime(next);
+  }
+
+  function handleSliderKey(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (!duration) return;
+    const key = event.key;
+    if (key === "ArrowRight") {
+      event.preventDefault();
+      seekBy(5);
+    } else if (key === "ArrowLeft") {
+      event.preventDefault();
+      seekBy(-5);
+    } else if (key === "Home") {
+      event.preventDefault();
+      seekBy(-currentTime);
+    } else if (key === "End") {
+      event.preventDefault();
+      seekBy(duration - currentTime);
+    }
+  }
+
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   const row = (
@@ -135,15 +161,18 @@ export function AudioPlayer({
           aria-valuemin={0}
           aria-valuemax={Math.round(duration)}
           aria-valuenow={Math.round(currentTime)}
+          aria-valuetext={`${formatTime(currentTime)} of ${formatTime(duration)}`}
+          tabIndex={0}
           onClick={seek}
-          className="group relative h-1.5 w-full cursor-pointer rounded-full bg-zinc-200 dark:bg-zinc-700"
+          onKeyDown={handleSliderKey}
+          className="group relative h-1.5 w-full cursor-pointer rounded-full bg-zinc-200 outline-none dark:bg-zinc-700"
         >
           <div
             className="absolute inset-y-0 left-0 rounded-full bg-zinc-900 transition-[width] dark:bg-zinc-100"
             style={{ width: `${progress}%` }}
           />
           <div
-            className="absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-zinc-900 opacity-0 shadow transition-opacity group-hover:opacity-100 dark:bg-zinc-100"
+            className="absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-zinc-900 opacity-0 shadow transition-opacity group-hover:opacity-100 group-focus:opacity-100 dark:bg-zinc-100"
             style={{ left: `calc(${progress}% - 6px)` }}
           />
         </div>

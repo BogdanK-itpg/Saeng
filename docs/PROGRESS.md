@@ -9,6 +9,36 @@ is `docs/idea.md`; the master process is `docs/WORKPLAN.md`; the full plan is
 
 ---
 
+## Recent change — Phase 12 UX/accessibility/responsiveness (2026-08-20)
+
+Full UX/accessibility pass on top of the earlier settings + glow work. Phase 12
+is now complete.
+
+- **Mobile navigation**: new `src/components/layout/mobile-nav.tsx` hamburger
+  menu (`sm:hidden`) — collapsible panel with the same nav links, profile link,
+  and sign-out as the desktop bar; closes on link activation. Desktop nav is
+  unchanged.
+- **Keyboard & focus**:
+  - Global `:focus-visible` ring in `globals.css` (light + dark).
+  - "Skip to content" links on the landing page, auth layout, and app layout
+    (target `#main`).
+  - Audio-player progress slider is now keyboard-operable: `tabIndex`, arrow
+    keys (5s steps), Home/End, `aria-valuetext`, and the thumb shows on focus.
+  - Header avatar link has an `aria-label` (was an unnamed image-only link on
+    mobile).
+  - `aria-label` added to the song-search and friend-search inputs.
+  - Send Shout composer's friend `<select>` now has `id`/`htmlFor` label
+    association.
+- **Reduced motion**: `@media (prefers-reduced-motion: reduce)` disables the
+  rotating LED-glow animation (and slows spinners).
+- **Loading states**: `loading.tsx` added to both the `(app)` and `(auth)`
+  route groups (centered spinner with `role="status"`).
+
+Verified: lint ✅ · tsc ✅ · build ✅; live: `/` → 200, `/login` → 200,
+`/dashboard` → 307 unauthenticated.
+
+---
+
 ## Recent change — Dashboard Sent section + custom reaction (2026-08-20)
 
 The dashboard now has a **Sent** section below **Received** (each up to 10
@@ -177,7 +207,7 @@ through the new flow.
 [x] Phase 9  — Reactions (add/change/remove on shout detail, RLS-verified live)
 [x] Phase 10 — Dashboard (recent shouts + quick send + prominent Send Shout, 2026-08-20)
 [x] Phase 11 — Main application pages (profile stats + recent activity; 2026-08-20)
-[~] Phase 12 — UX/accessibility/responsiveness (settings + ambient glow landed 2026-08-20; full UX pass pending)
+[x] Phase 12 — UX/accessibility/responsiveness (mobile nav, skip links, focus-visible, reduced motion, keyboard audio slider, loading states, form a11y; 2026-08-20)
 [ ] Phase 13 — Security review
 [ ] Phase 14 — Testing
 [ ] Phase 15 — Deployment
@@ -475,6 +505,7 @@ adds a reaction, and surface on `/notifications` (Phase 8 landed 2026-08-20).
 | Notifications (Phase 8) | ✅ page + badge + realtime wired; friend_request/reaction notifications created; `/notifications` → 307 unauth; lint/tsc/build pass (2026-08-20) |
 | Profile stats + activity (Phase 11) | ✅ stats grid + recent activity render; `/profile` → 307 unauth; lint/tsc/build pass (2026-08-20) |
 | Dashboard Sent section + reactions | ✅ sent shouts listed with recipient's reaction; custom emoji input in picker; embed query shape verified live; `/dashboard` → 307 unauth (2026-08-20) |
+| UX/accessibility/responsiveness (Phase 12) | ✅ mobile nav, skip links, focus-visible, reduced motion, keyboard slider, loading.tsx, form a11y; lint/tsc/build pass; `/`, `/login` 200; `/dashboard` 307 unauth (2026-08-20) |
 
 ---
 

@@ -70,6 +70,7 @@ export function SongSearch({
             }
           }}
           placeholder="Search for a song…"
+          aria-label="Search for a song"
           autoComplete="off"
           spellCheck={false}
         />
