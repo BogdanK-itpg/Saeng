@@ -8,8 +8,9 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/utils/cn";
 
 /**
- * Nav link with a live unread badge. Starts from the server-rendered count
- * and increments as new notifications arrive via Supabase Realtime.
+ * Nav link with a live unread badge. Starts from the server-rendered count,
+ * increments as new notifications arrive, and decrements when one is marked
+ * read (all via Supabase Realtime).
  */
 export function NotificationsNavLink({
   userId,
@@ -36,6 +37,24 @@ export function NotificationsNavLink({
           filter: `user_id=eq.${userId}`,
         },
         () => setCount((c) => c + 1),
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          const wasUnread =
+            (payload.old as { read_at?: string | null } | null)?.read_at == null;
+          const isNowRead =
+            (payload.new as { read_at?: string | null } | null)?.read_at != null;
+          if (wasUnread && isNowRead) {
+            setCount((c) => Math.max(0, c - 1));
+          }
+        },
       )
       .subscribe();
     return () => {
