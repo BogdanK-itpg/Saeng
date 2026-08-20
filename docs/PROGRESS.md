@@ -9,6 +9,20 @@ is `docs/idea.md`; the master process is `docs/WORKPLAN.md`; the full plan is
 
 ---
 
+## Recent change — Phase 10 dashboard quick-send (2026-08-20)
+
+The dashboard now has a **Quick send** section: up to 8 friend avatars link to
+`/send?friend=<id>`, which preselects that friend in the composer (`/send` reads
+`searchParams.friend` and `SendShoutComposer` uses it as the select's
+`defaultValue`). The primary Send Shout button stays prominent in the header.
+Dashboard stays focused: recent shouts + quick send (notifications preview
+remains deferred with Phase 8).
+
+Verified: lint ✅ · tsc ✅ · build ✅ · `/dashboard`, `/send`, `/send?friend=…`
+all 307 to `/login` unauthenticated. Committed + pushed as `feat(dashboard)`.
+
+---
+
 ## Recent change — Settings page + ambient glow (2026-08-20)
 
 Added a `/settings` page with device-local customization, plus an LED-strip
@@ -90,7 +104,7 @@ through the new flow.
 [x] Phase 7  — Shout view & playback (detail page + audio player + dashboard feed)
 [-] Phase 8  — Notifications (deferred by project owner 2026-08-20; DB rows exist, UI not built)
 [x] Phase 9  — Reactions (add/change/remove on shout detail, RLS-verified live)
-[ ] Phase 10 — Dashboard
+[x] Phase 10 — Dashboard (recent shouts + quick send + prominent Send Shout, 2026-08-20)
 [ ] Phase 11 — Main application pages
 [~] Phase 12 — UX/accessibility/responsiveness (settings + ambient glow landed 2026-08-20; full UX pass pending)
 [ ] Phase 13 — Security review
@@ -440,16 +454,16 @@ friendship via `/friends`, then run the flows below. Steps:
     on the detail page (or uses the provider link fallback)
   - A (sender) can also open it; the "To" label renders instead of "From"
 
-### 3. Next: Phase 10 — Dashboard (+ remaining pages)
+### 3. Next: Phase 11 — remaining pages
 
 Phase 8 (Notifications) is **deferred by the project owner** (2026-08-20) as low
 priority — the DB rows and service queries exist but no UI.
 
-The dashboard (`/dashboard`) already shows received shouts with inline playback
-and a Send Shout button, so Phase 10 is mostly polish: quick-send affordance and
-keeping it focused. Remaining work:
+Phase 10 (Dashboard) is **done** (2026-08-20): recent shouts, quick-send
+affordance (`/send?friend=<id>` preselects a friend), prominent Send Shout.
 
-- Phase 10 — Dashboard: recent shouts + quick send (mostly present), polish
+Remaining work:
+
 - Phase 11 — Pages: `/notifications` (deferred with Phase 8), profile statistics
 - Phase 12 — UX/accessibility/responsiveness: `/settings` + ambient glow landed (2026-08-20); full pass pending
 - Phase 13 — Security review

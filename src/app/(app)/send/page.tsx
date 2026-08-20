@@ -6,9 +6,14 @@ import { SendShoutComposer } from "@/components/shouts/send-shout-composer";
 
 export const metadata: Metadata = { title: "Send Shout" };
 
-export default async function SendPage() {
+export default async function SendPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ friend?: string }>;
+}) {
   const user = await requireUser();
   const friends = await listFriends(user.id);
+  const { friend } = await searchParams;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -22,7 +27,7 @@ export default async function SendPage() {
         </p>
       </div>
 
-      <SendShoutComposer friends={friends} />
+      <SendShoutComposer friends={friends} preselectedFriendId={friend} />
     </div>
   );
 }
