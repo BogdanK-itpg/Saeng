@@ -59,6 +59,11 @@ export interface Reaction {
   createdAt: string;
 }
 
+/** A reaction joined with the reactor's profile. */
+export interface ReactionWithActor extends Reaction {
+  user: Pick<Profile, "id" | "username" | "displayName" | "avatarUrl">;
+}
+
 export type NotificationType = "friend_request" | "shout_received" | "reaction";
 
 export interface Notification {

@@ -3,8 +3,10 @@ import type { Metadata } from "next";
 
 import { requireUser } from "@/lib/auth/current-user";
 import { getShoutWithDetails, markShoutSeen } from "@/services/shouts";
+import { listReactionsWithActors } from "@/services/reactions";
 import { AudioPlayer } from "@/components/ui/audio-player";
 import { ProfileAvatar } from "@/components/friends/profile-avatar";
+import { ReactionBar } from "@/components/shouts/reaction-bar";
 
 export const metadata: Metadata = { title: "Shout" };
 
@@ -32,6 +34,10 @@ export default async function ShoutDetailPage({
 
   const isMine = shout.senderId === user.id;
   const other = isMine ? shout.receiver : shout.sender;
+
+  const reactions = await listReactionsWithActors(shout.id);
+  const myReaction =
+    reactions.find((r) => r.userId === user.id)?.reactionType ?? null;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -86,6 +92,18 @@ export default async function ShoutDetailPage({
       <AudioPlayer
         previewUrl={shout.song.previewUrl}
         externalUrl={shout.song.externalUrl}
+      />
+
+      <ReactionBar
+        shoutId={shout.id}
+        isRecipient={shout.receiverId === user.id}
+        myReactionType={myReaction}
+        reactions={reactions.map((r) => ({
+          userId: r.userId,
+          reactionType: r.reactionType,
+          displayName: r.user.displayName,
+          avatarUrl: r.user.avatarUrl,
+        }))}
       />
     </div>
   );
