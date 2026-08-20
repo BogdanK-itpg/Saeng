@@ -10,6 +10,7 @@ const PROTECTED_PREFIXES = [
   "/shouts",
   "/notifications",
   "/profile",
+  "/settings",
 ];
 
 // "/forgot-password" removed — email-driven reset is disabled (2026-08-20).

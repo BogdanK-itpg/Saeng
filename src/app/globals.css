@@ -1,8 +1,16 @@
 @import "tailwindcss";
 
+/* Class-based dark mode (`.dark` on <html>), controlled by user settings. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
+}
+
+:root.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 @theme inline {
@@ -12,15 +20,46 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* LED-strip glow around the audio player: a rotating conic gradient ring
+   whose colors are sampled from the song's album artwork. */
+@property --glow-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes glow-spin {
+  to {
+    --glow-angle: 360deg;
+  }
+}
+
+/* Applies the ring to the element's own border (set up by useLedGlow). The
+   solid fill layer hides the gradient under the card; the conic gradient
+   shows through the transparent border as a rotating LED strip. */
+.led-glow {
+  --led-fill: #ffffff;
+  border: var(--led-px) solid transparent;
+  background:
+    linear-gradient(var(--led-fill), var(--led-fill)) padding-box,
+    conic-gradient(
+      from var(--glow-angle),
+      var(--led-c1),
+      var(--led-c2),
+      var(--led-c3),
+      var(--led-c4),
+      var(--led-c1)
+    ) border-box;
+  animation: glow-spin var(--led-speed) linear infinite;
+  box-shadow: var(--led-neon, none);
+}
+
+.dark .led-glow {
+  --led-fill: #18181b;
 }

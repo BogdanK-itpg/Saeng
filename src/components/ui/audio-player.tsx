@@ -15,13 +15,18 @@ function formatTime(seconds: number): string {
  * Streams the song preview directly from the provider CDN (no proxying).
  * Play triangle + progress bar. Falls back to a provider link when no
  * preview is available. Only one player plays at a time per page.
+ *
+ * Reports its playing state via `onPlayingChange` so a parent can react
+ * (e.g. the ambient LED-strip glow around the hosting card).
  */
 export function AudioPlayer({
   previewUrl,
   externalUrl,
+  onPlayingChange,
 }: {
   previewUrl: string | null;
   externalUrl: string;
+  onPlayingChange?: (playing: boolean) => void;
 }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -29,6 +34,10 @@ export function AudioPlayer({
   const [error, setError] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+
+  useEffect(() => {
+    onPlayingChange?.(playing);
+  }, [playing, onPlayingChange]);
 
   useEffect(() => {
     function onOtherPlay(event: Event) {
@@ -98,36 +107,8 @@ export function AudioPlayer({
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-  return (
+  const row = (
     <div className="flex items-center gap-3">
-      <audio
-        ref={audioRef}
-        src={previewUrl}
-        preload="metadata"
-        onPlay={() => {
-          setPlaying(true);
-          readDuration();
-        }}
-        onPause={() => {
-          setPlaying(false);
-          readDuration();
-        }}
-        onLoadedMetadata={readDuration}
-        onDurationChange={readDuration}
-        onTimeUpdate={(e) => {
-          setCurrentTime(e.currentTarget.currentTime);
-          readDuration();
-        }}
-        onEnded={() => {
-          setPlaying(false);
-          setCurrentTime(0);
-        }}
-        onError={() => {
-          setError(true);
-          setLoading(false);
-          setPlaying(false);
-        }}
-      />
       <button
         type="button"
         onClick={toggle}
@@ -189,5 +170,39 @@ export function AudioPlayer({
         </p>
       )}
     </div>
+  );
+
+  return (
+    <>
+      <audio
+        ref={audioRef}
+        src={previewUrl}
+        preload="metadata"
+        onPlay={() => {
+          setPlaying(true);
+          readDuration();
+        }}
+        onPause={() => {
+          setPlaying(false);
+          readDuration();
+        }}
+        onLoadedMetadata={readDuration}
+        onDurationChange={readDuration}
+        onTimeUpdate={(e) => {
+          setCurrentTime(e.currentTarget.currentTime);
+          readDuration();
+        }}
+        onEnded={() => {
+          setPlaying(false);
+          setCurrentTime(0);
+        }}
+        onError={() => {
+          setError(true);
+          setLoading(false);
+          setPlaying(false);
+        }}
+      />
+      {row}
+    </>
   );
 }

@@ -9,6 +9,39 @@ is `docs/idea.md`; the master process is `docs/WORKPLAN.md`; the full plan is
 
 ---
 
+## Recent change — Settings page + ambient glow (2026-08-20)
+
+Added a `/settings` page with device-local customization, plus an LED-strip
+glow around the audio player while a preview plays.
+
+- **Settings** (`src/app/(app)/settings/`, `src/components/settings/`):
+  - `SettingsProvider` (client context) persists preferences to
+    `localStorage` under `songshout.settings`: **theme** (System/Light/Dark),
+    **ambient glow** on/off, **glow intensity** (Subtle/Medium/Vivid).
+  - Theme is class-based dark mode: `@custom-variant dark` in `globals.css`
+    + an inline FOUC-prevention script in the root layout. `dark:` variants
+    follow `.dark` on `<html>`, not just `prefers-color-scheme`.
+  - Nav link added; `/settings` added to the proxy's protected prefixes.
+- **Ambient glow** (`src/components/ui/audio-player.tsx`):
+  - `AudioPlayer` accepts `artworkUrl`; while playing (and glow enabled) it
+    wraps itself in an animated `conic-gradient` ring whose colors are sampled
+    from the album cover — the ring rotates like an LED strip (`--glow-angle`
+    + `glow-spin` keyframes in `globals.css`). Ring thickness/speed scale with
+    intensity.
+  - Color sampling (`src/lib/colors.ts`) draws a 64px canvas read and
+    quantizes to the 4 most frequent colors. The provider CDN sends no CORS
+    headers, so covers are fetched through the new authenticated
+    `src/app/api/artwork/route.ts` (server-side proxy, host allowlist
+    `.mzstatic.com` / `itunes.apple.com`, never audio — spec-compliant).
+- Verified: `npm run lint` ✅ · `npx tsc --noEmit` ✅ · `npm run build` ✅
+  (adds ƒ `/api/artwork` and ƒ `/settings`); live: `/api/artwork` → **401**
+  unauthenticated, `/settings` → **307** to `/login`; real artwork proxies
+  with 200 + valid JPEG; allowlist rejects look-alike hosts.
+- Caveat: preferences are per-device (localStorage), not synced per-account —
+  intentional for V1.
+
+---
+
 ## Recent change — username-based auth + email sending disabled (2026-08-20)
 
 Auth is now **username + password** only (no email field anywhere in the UI).
@@ -55,11 +88,11 @@ through the new flow.
 [x] Phase 5  — Music provider (iTunes provider live; Spotify deferred)
 [x] Phase 6  — Send Shout (action + composer + /send page)
 [x] Phase 7  — Shout view & playback (detail page + audio player + dashboard feed)
-[ ] Phase 8  — Notifications
-[ ] Phase 9  — Reactions
+[-] Phase 8  — Notifications (deferred by project owner 2026-08-20; DB rows exist, UI not built)
+[x] Phase 9  — Reactions (add/change/remove on shout detail, RLS-verified live)
 [ ] Phase 10 — Dashboard
 [ ] Phase 11 — Main application pages
-[ ] Phase 12 — UX/accessibility/responsiveness
+[~] Phase 12 — UX/accessibility/responsiveness (settings + ambient glow landed 2026-08-20; full UX pass pending)
 [ ] Phase 13 — Security review
 [ ] Phase 14 — Testing
 [ ] Phase 15 — Deployment
@@ -309,6 +342,35 @@ Verified
   `song`/`sender`/`receiver` come back as objects; the mapper produced the
   expected `ShoutWithDetails`.
 
+### Phase 9 — Reactions (done 2026-08-20)
+
+One emoji reaction per shout, added/changed/removed by the **recipient**; the
+sender sees it read-only. Uniqueness is enforced by the DB unique index on
+`(shout_id, user_id)` and RLS only lets the recipient insert.
+
+- `src/app/actions/reactions.ts` — `setReactionAction` / `removeReactionAction`
+  (server actions, zod-validated shout id + reaction type, revalidate the shout
+  route).
+- `src/services/reactions.ts` — added `listReactionsWithActors` (reactions
+  joined with the reactor profile via `profiles!reactions_user_id_fkey`;
+  PostgREST to-one join mapped as an object, per the Phase 7 finding).
+- `src/components/shouts/reaction-bar.tsx` — client component: recipient gets an
+  emoji picker (❤️ 🎶 🔥 👏 😂 🥳) with toggle-to-remove via `useTransition` +
+  `router.refresh()`; sender gets a read-only list (avatar + "X reacted with Y").
+- `src/app/(app)/shouts/[id]/page.tsx` — fetches `listReactionsWithActors`,
+  derives the user's own reaction, renders `ReactionBar`.
+- `src/types/domain.ts` — added `ReactionWithActor`.
+
+Verified (live against remote, temp users cleaned up):
+
+- Recipient add ✅, change via upsert ✅ (stored type updated), remove ✅.
+- **Sender insert blocked by RLS** (`new row violates row-level security policy`) ✅.
+- `npm run lint` ✅ · `npx tsc --noEmit` ✅ · `npm run build` ✅.
+
+Note: reaction notifications (type `reaction` already in the DB schema) are not
+created yet — Phase 8 is deferred, so there's no notifications UI to surface
+them.
+
 ---
 
 ## Verification status
@@ -325,6 +387,7 @@ Verified
 | Send Shout DB write-path | ✅ friendship check → song upsert → shout insert → notification insert, all verified against remote |
 | Shout detail join shape | ✅ embedded to-one joins are objects (not arrays); fixed + mapped live |
 | AudioPlayer + inline dashboard playback | ✅ play triangle + seek bar + live duration; card plays preview without opening the shout |
+| Reactions (Phase 9) | ✅ recipient add/change/remove works; sender blocked by RLS; lint/tsc/build pass (2026-08-20) |
 
 ---
 
@@ -377,16 +440,21 @@ friendship via `/friends`, then run the flows below. Steps:
     on the detail page (or uses the provider link fallback)
   - A (sender) can also open it; the "To" label renders instead of "From"
 
-### 3. Continue to Phase 8 — Notifications
+### 3. Next: Phase 10 — Dashboard (+ remaining pages)
 
-With shouts flow working, surface the existing notification rows:
+Phase 8 (Notifications) is **deferred by the project owner** (2026-08-20) as low
+priority — the DB rows and service queries exist but no UI.
 
-- `src/app/(app)/notifications/page.tsx` — server page listing
-  `listNotificationsWithActors` (friend_request, shout_received)
-- Unread badge in the app shell nav (realtime or on-refresh count)
-- Actions: mark-all-read on open; per-item read state
-- `services/notifications.ts` already has the queries — wire them to the UI
-- `hooks/useRealtimeNotifications` (realtime subscription) can come later
+The dashboard (`/dashboard`) already shows received shouts with inline playback
+and a Send Shout button, so Phase 10 is mostly polish: quick-send affordance and
+keeping it focused. Remaining work:
+
+- Phase 10 — Dashboard: recent shouts + quick send (mostly present), polish
+- Phase 11 — Pages: `/notifications` (deferred with Phase 8), profile statistics
+- Phase 12 — UX/accessibility/responsiveness: `/settings` + ambient glow landed (2026-08-20); full pass pending
+- Phase 13 — Security review
+- Phase 14 — Testing
+- Phase 15 — Deployment
 
 Remaining smaller gaps (deferred):
 

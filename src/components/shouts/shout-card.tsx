@@ -1,7 +1,12 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 
 import type { ShoutWithDetails } from "@/types/domain";
 import { AudioPlayer } from "@/components/ui/audio-player";
+import { useLedGlow } from "@/lib/led-glow";
+import { cn } from "@/utils/cn";
 
 /** A received shout card with inline preview playback, linking to the detail page. */
 export function ReceivedShoutCard({
@@ -12,8 +17,17 @@ export function ReceivedShoutCard({
   senderName: string;
 }) {
   const song = shout.song;
+  const [playing, setPlaying] = useState(false);
+  const glow = useLedGlow(song.artworkUrl, playing);
+
   return (
-    <li className="rounded-xl border border-zinc-200 bg-white p-4 transition-colors hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700">
+    <li
+      className={cn(
+        "rounded-xl border border-zinc-200 bg-white p-4 transition-colors hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700",
+        glow.className,
+      )}
+      style={glow.style}
+    >
       <div className="flex items-center gap-4">
         <Link
           href={`/shouts/${shout.id}`}
@@ -40,19 +54,16 @@ export function ReceivedShoutCard({
             </p>
           </div>
         </Link>
-        <div className="shrink-0 text-right">
-          <p className="truncate text-sm font-medium text-zinc-600 dark:text-zinc-400">
-            from {senderName}
-          </p>
-          <p className="text-xs text-zinc-400 dark:text-zinc-500">
-            {new Date(shout.sentAt).toLocaleDateString(undefined, {
-              dateStyle: "medium",
-            })}
-          </p>
+        <div className="shrink-0 text-sm text-zinc-500 dark:text-zinc-400">
+          from @{senderName}
         </div>
       </div>
       <div className="mt-3">
-        <AudioPlayer previewUrl={song.previewUrl} externalUrl={song.externalUrl} />
+        <AudioPlayer
+          previewUrl={song.previewUrl}
+          externalUrl={song.externalUrl}
+          onPlayingChange={setPlaying}
+        />
       </div>
     </li>
   );

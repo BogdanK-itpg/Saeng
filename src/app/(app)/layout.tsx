@@ -5,12 +5,14 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { createClient } from "@/lib/supabase/server";
 import { NavLink } from "@/components/layout/nav-link";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { SettingsProvider } from "@/components/settings/settings-provider";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/friends", label: "Friends" },
   { href: "/send", label: "Send Shout" },
   { href: "/notifications", label: "Notifications" },
+  { href: "/settings", label: "Settings" },
 ];
 
 export default async function AppLayout({
@@ -67,7 +69,7 @@ export default async function AppLayout({
         </div>
       </header>
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6">
-        {children}
+        <SettingsProvider>{children}</SettingsProvider>
       </main>
     </div>
   );
