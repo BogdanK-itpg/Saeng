@@ -3,9 +3,11 @@ import { redirect } from "next/navigation";
 
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { createClient } from "@/lib/supabase/server";
+import { countUnreadNotifications } from "@/services/notifications";
 import { NavLink } from "@/components/layout/nav-link";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { SettingsProvider } from "@/components/settings/settings-provider";
+import { NotificationsNavLink } from "@/components/notifications/notifications-nav-link";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard" },
@@ -30,6 +32,8 @@ export default async function AppLayout({
     .eq("id", user.id)
     .maybeSingle();
 
+  const unreadNotifications = await countUnreadNotifications(user.id);
+
   return (
     <div className="flex min-h-full flex-col bg-zinc-50 dark:bg-zinc-950">
       <header className="sticky top-0 z-10 border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
@@ -41,11 +45,19 @@ export default async function AppLayout({
             Song Shout
           </Link>
           <nav className="hidden items-center gap-1 sm:flex">
-            {NAV_ITEMS.map((item) => (
-              <NavLink key={item.href} href={item.href}>
-                {item.label}
-              </NavLink>
-            ))}
+            {NAV_ITEMS.map((item) =>
+              item.href === "/notifications" ? (
+                <NotificationsNavLink
+                  key={item.href}
+                  userId={user.id}
+                  unreadCount={unreadNotifications}
+                />
+              ) : (
+                <NavLink key={item.href} href={item.href}>
+                  {item.label}
+                </NavLink>
+              ),
+            )}
           </nav>
           <div className="flex items-center gap-3">
             <Link

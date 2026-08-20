@@ -1,6 +1,7 @@
 import { AppError } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
 import type { Reaction, ReactionWithActor } from "@/types/domain";
+import { createNotification } from "@/services/notifications";
 
 import { PROFILE_COLUMNS, type ProfileRow } from "./_row-mappers";
 
@@ -27,6 +28,15 @@ export async function setReaction(
   reactionType: string,
 ): Promise<Reaction> {
   const supabase = await createClient();
+
+  // Notify the shout's sender only on a brand-new reaction (not changes).
+  const { data: existing } = await supabase
+    .from("reactions")
+    .select("id")
+    .eq("shout_id", shoutId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
   const { data, error } = await supabase
     .from("reactions")
     .upsert(
@@ -39,6 +49,23 @@ export async function setReaction(
   if (error) {
     throw AppError.user("Could not add reaction.");
   }
+
+  if (!existing) {
+    const { data: shout } = await supabase
+      .from("shouts")
+      .select("sender_id")
+      .eq("id", shoutId)
+      .maybeSingle();
+    if (shout && shout.sender_id !== userId) {
+      await createNotification({
+        userId: shout.sender_id,
+        type: "reaction",
+        actorId: userId,
+        relatedEntityId: shoutId,
+      });
+    }
+  }
+
   return mapReaction(data);
 }
 

@@ -2,12 +2,12 @@ import { AppError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type {
-  Notification,
-  NotificationType,
+  Profile,
   Shout,
   ShoutWithDetails,
   SongReference,
 } from "@/types/domain";
+import { createNotification } from "@/services/notifications";
 
 import { mapProfile, PROFILE_COLUMNS, type ProfileRow } from "./_row-mappers";
 
@@ -152,16 +152,12 @@ export async function sendShout(input: {
     throw AppError.infrastructure("Failed to send shout", error.code);
   }
 
-  const { error: notifError } = await admin.from("notifications").insert({
-    user_id: receiverId,
+  await createNotification({
+    userId: receiverId,
     type: "shout_received",
-    actor_id: senderId,
-    related_entity_id: shout.id,
+    actorId: senderId,
+    relatedEntityId: shout.id,
   });
-
-  if (notifError) {
-    throw AppError.infrastructure("Failed to create notification", notifError.code);
-  }
 
   return mapShout(shout);
 }
@@ -333,34 +329,70 @@ export async function listReceivedShoutsWithDetails(
   }));
 }
 
-export async function createNotification(input: {
-  userId: string;
-  type: NotificationType;
-  actorId?: string | null;
-  relatedEntityId?: string | null;
-}): Promise<Notification> {
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("notifications")
-    .insert({
-      user_id: input.userId,
-      type: input.type,
-      actor_id: input.actorId ?? null,
-      related_entity_id: input.relatedEntityId ?? null,
-    })
-    .select("id, user_id, type, actor_id, related_entity_id, read_at, created_at")
-    .single();
+export interface RecentShoutActivity {
+  id: string;
+  direction: "sent" | "received";
+  other: Pick<Profile, "id" | "username" | "displayName" | "avatarUrl">;
+  song: Pick<SongReference, "id" | "title" | "artist" | "artworkUrl">;
+  message: string | null;
+  sentAt: string;
+}
+
+const ACTIVITY_COLUMNS = `
+  id, sender_id, receiver_id, message, sent_at,
+  song:song_references(id, title, artist, artwork_url),
+  sender:profiles!shouts_sender_id_fkey(${PROFILE_COLUMNS}),
+  receiver:profiles!shouts_receiver_id_fkey(${PROFILE_COLUMNS})
+` as const;
+
+type ActivityRow = {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  message: string | null;
+  sent_at: string;
+  song: { id: string; title: string; artist: string; artwork_url: string | null };
+  sender: ProfileRow;
+  receiver: ProfileRow;
+};
+
+/** Most recent shouts the user sent or received, with song + counterpart. */
+export async function listRecentShoutActivity(
+  userId: string,
+  { limit = 5 }: { limit?: number } = {},
+): Promise<RecentShoutActivity[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("shouts")
+    .select(ACTIVITY_COLUMNS)
+    .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+    .order("sent_at", { ascending: false })
+    .limit(limit);
 
   if (error) {
-    throw AppError.infrastructure("Failed to create notification", error.code);
+    throw AppError.infrastructure("Failed to load activity", error.code);
   }
-  return {
-    id: data.id,
-    userId: data.user_id,
-    type: data.type,
-    actorId: data.actor_id,
-    relatedEntityId: data.related_entity_id,
-    readAt: data.read_at,
-    createdAt: data.created_at,
-  };
+
+  return ((data ?? []) as unknown as ActivityRow[]).map((row) => {
+    const isSender = row.sender_id === userId;
+    const other = isSender ? row.receiver : row.sender;
+    return {
+      id: row.id,
+      direction: isSender ? "sent" : "received",
+      other: {
+        id: other.id,
+        username: other.username,
+        displayName: other.display_name,
+        avatarUrl: other.avatar_url,
+      },
+      song: {
+        id: row.song.id,
+        title: row.song.title,
+        artist: row.song.artist,
+        artworkUrl: row.song.artwork_url,
+      },
+      message: row.message,
+      sentAt: row.sent_at,
+    };
+  });
 }

@@ -64,3 +64,70 @@ export function getAvatarPublicUrl(path: string): string {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   return `${url}/storage/v1/object/public/avatars/${path}`;
 }
+
+export interface ProfileStats {
+  shoutsSent: number;
+  shoutsReceived: number;
+  friends: number;
+  reactionsReceived: number;
+}
+
+/** Aggregate counters for the profile page. */
+export async function getProfileStats(userId: string): Promise<ProfileStats> {
+  const supabase = await createClient();
+
+  const [shoutsSent, shoutsReceived, friends, reactionsReceived] =
+    await Promise.all([
+      (async () => {
+        const { count, error } = await supabase
+          .from("shouts")
+          .select("id", { count: "exact", head: true })
+          .eq("sender_id", userId);
+        if (error) {
+          throw AppError.infrastructure("Failed to load stats", error.code);
+        }
+        return count ?? 0;
+      })(),
+      (async () => {
+        const { count, error } = await supabase
+          .from("shouts")
+          .select("id", { count: "exact", head: true })
+          .eq("receiver_id", userId);
+        if (error) {
+          throw AppError.infrastructure("Failed to load stats", error.code);
+        }
+        return count ?? 0;
+      })(),
+      (async () => {
+        const { count, error } = await supabase
+          .from("friendships")
+          .select("id", { count: "exact", head: true })
+          .or(`user_id.eq.${userId},friend_id.eq.${userId}`);
+        if (error) {
+          throw AppError.infrastructure("Failed to load stats", error.code);
+        }
+        return count ?? 0;
+      })(),
+      (async () => {
+        const { data: sentIds, error: sentError } = await supabase
+          .from("shouts")
+          .select("id")
+          .eq("sender_id", userId);
+        if (sentError) {
+          throw AppError.infrastructure("Failed to load stats", sentError.code);
+        }
+        const ids = sentIds?.map((r) => r.id) ?? [];
+        if (ids.length === 0) return 0;
+        const { count, error } = await supabase
+          .from("reactions")
+          .select("id", { count: "exact", head: true })
+          .in("shout_id", ids);
+        if (error) {
+          throw AppError.infrastructure("Failed to load stats", error.code);
+        }
+        return count ?? 0;
+      })(),
+    ]);
+
+  return { shoutsSent, shoutsReceived, friends, reactionsReceived };
+}

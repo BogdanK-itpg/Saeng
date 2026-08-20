@@ -1,9 +1,38 @@
 import { AppError } from "@/lib/errors";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import type { Notification, NotificationWithActor } from "@/types/domain";
+import type {
+  Notification,
+  NotificationType,
+  NotificationWithActor,
+} from "@/types/domain";
 
 import { mapProfile, PROFILE_COLUMNS } from "./_row-mappers";
+
+/** Creates a notification on behalf of a user (service role). */
+export async function createNotification(input: {
+  userId: string;
+  type: NotificationType;
+  actorId?: string | null;
+  relatedEntityId?: string | null;
+}): Promise<Notification> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("notifications")
+    .insert({
+      user_id: input.userId,
+      type: input.type,
+      actor_id: input.actorId ?? null,
+      related_entity_id: input.relatedEntityId ?? null,
+    })
+    .select("id, user_id, type, actor_id, related_entity_id, read_at, created_at")
+    .single();
+
+  if (error) {
+    throw AppError.infrastructure("Failed to create notification", error.code);
+  }
+  return mapNotification(data);
+}
 
 function mapNotification(row: {
   id: string;

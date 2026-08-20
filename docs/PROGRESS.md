@@ -9,6 +9,52 @@ is `docs/idea.md`; the master process is `docs/WORKPLAN.md`; the full plan is
 
 ---
 
+## Recent change — Phase 8 notifications + Phase 11 profile stats (2026-08-20)
+
+Phase 8 (previously deferred) and the Phase 11 page work both landed.
+
+**Notifications** (`/notifications`, badge, realtime):
+
+- Migration `0011_notifications_realtime.sql` adds `notifications` to the
+  `supabase_realtime` publication — **applied to the remote** (`db push`).
+- Notification creation is now fully wired for all three types:
+  - `shout_received` — on `sendShout` (was already there).
+  - `friend_request` — `sendFriendRequest` now notifies the receiver
+    (`src/services/friends.ts`).
+  - `reaction` — `setReaction` notifies the shout's sender when a new reaction
+    is added (`src/services/reactions.ts`; RLS guarantees only the recipient
+    inserts, so it always fires for the sender). `createNotification` moved
+    into `src/services/notifications.ts`.
+- `src/app/(app)/notifications/page.tsx` — server page listing the 50 latest
+  notifications with per-type copy + links (friend request → `/friends`;
+  shout/reaction → `/shouts/<id>`), "Mark all as read" form, empty state.
+  Server-side `toLocaleString` formatting (no hydration mismatch).
+- `src/components/notifications/mark-read-link.tsx` — client link; clicking it
+  fires `markNotificationReadAction` and shows an unread dot.
+- `src/components/notifications/notifications-nav-link.tsx` — nav link with a
+  live unread badge that starts from the server-rendered count and increments
+  on `postgres_changes` INSERT for `user_id`. Wired into `(app)/layout.tsx`
+  (which now fetches `countUnreadNotifications`).
+- `src/app/actions/notifications.ts` — `markAllNotificationsReadAction`
+  (best-effort, revalidates `/notifications`) + `markNotificationReadAction`.
+
+**Profile statistics + recent activity** (Phase 11 page work):
+
+- `getProfileStats(userId)` in `src/services/profiles.ts` — shouts sent /
+  shouts received / friends / reactions received (heads; reactions via a
+  two-step query over shouts the user sent).
+- `listRecentShoutActivity(userId)` in `src/services/shouts.ts` — the 5 most
+  recent shouts the user sent or received, with song + counterpart joined.
+- `src/app/(app)/profile/page.tsx` — new Statistics grid + Recent activity
+  list (artwork, song, direction, avatar, link to the shout), above the avatar
+  and account-details sections.
+
+Verified: lint ✅ · tsc ✅ · build ✅ (adds ƒ `/notifications`; profile now
+dynamic); live: `/notifications` and `/profile` → **307** to `/login` when
+unauthenticated; `supabase migration list` shows `0011` applied locally + remote.
+
+---
+
 ## Recent change — Phase 10 dashboard quick-send (2026-08-20)
 
 The dashboard now has a **Quick send** section: up to 8 friend avatars link to
@@ -102,10 +148,10 @@ through the new flow.
 [x] Phase 5  — Music provider (iTunes provider live; Spotify deferred)
 [x] Phase 6  — Send Shout (action + composer + /send page)
 [x] Phase 7  — Shout view & playback (detail page + audio player + dashboard feed)
-[-] Phase 8  — Notifications (deferred by project owner 2026-08-20; DB rows exist, UI not built)
+[x] Phase 8  — Notifications (page + nav badge + realtime + all three notification types wired; 2026-08-20)
 [x] Phase 9  — Reactions (add/change/remove on shout detail, RLS-verified live)
 [x] Phase 10 — Dashboard (recent shouts + quick send + prominent Send Shout, 2026-08-20)
-[ ] Phase 11 — Main application pages
+[x] Phase 11 — Main application pages (profile stats + recent activity; 2026-08-20)
 [~] Phase 12 — UX/accessibility/responsiveness (settings + ambient glow landed 2026-08-20; full UX pass pending)
 [ ] Phase 13 — Security review
 [ ] Phase 14 — Testing
@@ -381,9 +427,8 @@ Verified (live against remote, temp users cleaned up):
 - **Sender insert blocked by RLS** (`new row violates row-level security policy`) ✅.
 - `npm run lint` ✅ · `npx tsc --noEmit` ✅ · `npm run build` ✅.
 
-Note: reaction notifications (type `reaction` already in the DB schema) are not
-created yet — Phase 8 is deferred, so there's no notifications UI to surface
-them.
+Note: reaction notifications (type `reaction`) are now created when a recipient
+adds a reaction, and surface on `/notifications` (Phase 8 landed 2026-08-20).
 
 ---
 
@@ -394,7 +439,7 @@ them.
 | `npm run lint` | ✅ passes |
 | `npx tsc --noEmit` | ✅ passes |
 | `npm run build` | ✅ passes |
-| Migrations applied to Supabase | ✅ all 10 on `socrwlpwacahxioyboiv` (2026-08-13) |
+| Migrations applied to Supabase | ✅ all 11 on `socrwlpwacahxioyboiv` (0011 = notifications realtime, 2026-08-20) |
 | Auth register/login flow tested live | ✅ username-based: signup returns a session (confirm-email OFF), profile trigger fires, login by username works, duplicate username blocked (2026-08-20) |
 | Friend system smoke test (routes/proxy) | ✅ unauthenticated `/friends` → 307; build passes |
 | Music provider (iTunes) live search | ✅ normalized results from real API; route 401 when unauthenticated |
@@ -402,6 +447,8 @@ them.
 | Shout detail join shape | ✅ embedded to-one joins are objects (not arrays); fixed + mapped live |
 | AudioPlayer + inline dashboard playback | ✅ play triangle + seek bar + live duration; card plays preview without opening the shout |
 | Reactions (Phase 9) | ✅ recipient add/change/remove works; sender blocked by RLS; lint/tsc/build pass (2026-08-20) |
+| Notifications (Phase 8) | ✅ page + badge + realtime wired; friend_request/reaction notifications created; `/notifications` → 307 unauth; lint/tsc/build pass (2026-08-20) |
+| Profile stats + activity (Phase 11) | ✅ stats grid + recent activity render; `/profile` → 307 unauth; lint/tsc/build pass (2026-08-20) |
 
 ---
 
@@ -454,17 +501,21 @@ friendship via `/friends`, then run the flows below. Steps:
     on the detail page (or uses the provider link fallback)
   - A (sender) can also open it; the "To" label renders instead of "From"
 
-### 3. Next: Phase 11 — remaining pages
+### 3. Next steps
 
-Phase 8 (Notifications) is **deferred by the project owner** (2026-08-20) as low
-priority — the DB rows and service queries exist but no UI.
+Phase 8 (Notifications) is **done** (2026-08-20): `/notifications` page, nav
+badge with realtime increments, "mark as read", and all three notification
+types are created (`shout_received`, `friend_request`, `reaction`). Migration
+`0011` (realtime publication) is applied to the remote.
 
 Phase 10 (Dashboard) is **done** (2026-08-20): recent shouts, quick-send
 affordance (`/send?friend=<id>` preselects a friend), prominent Send Shout.
 
+Phase 11 (remaining pages) is **done** (2026-08-20): profile statistics grid +
+recent activity on `/profile`.
+
 Remaining work:
 
-- Phase 11 — Pages: `/notifications` (deferred with Phase 8), profile statistics
 - Phase 12 — UX/accessibility/responsiveness: `/settings` + ambient glow landed (2026-08-20); full pass pending
 - Phase 13 — Security review
 - Phase 14 — Testing

@@ -6,6 +6,7 @@ import type {
   FriendRequestWithProfiles,
   Profile,
 } from "@/types/domain";
+import { createNotification } from "@/services/notifications";
 
 import { mapProfile, PROFILE_COLUMNS, type ProfileRow } from "./_row-mappers";
 
@@ -204,6 +205,14 @@ export async function sendFriendRequest(
     }
     throw AppError.user("Could not send friend request.");
   }
+
+  await createNotification({
+    userId: receiverId,
+    type: "friend_request",
+    actorId: userId,
+    relatedEntityId: data.id,
+  });
+
   return {
     id: data.id,
     senderId: data.sender_id,
