@@ -79,19 +79,26 @@ it keeps sessions, `auth.uid()` RLS, and Supabase Auth as the password
 authority. Username uniqueness is enforced by a server pre-check plus a DB
 unique index.
 
-Email sending is **disabled** for future development (the `resend` client and
-forgot/reset-password flows are commented out). "Confirm email" is off, so no
-confirmation or reset email is used.
+Email sending is **disabled** (the `resend` client is not wired up; the
+forgot/reset-password server action exists but is not connected to any form).
+"Confirm email" is off, so no confirmation email is used.
 
 ## Commands
 
 ```bash
 npm run dev        # local dev server
 npm run lint       # eslint
+npm run test       # vitest unit tests
 npx tsc --noEmit   # typecheck
 npm run build      # production build
 npx supabase db push   # apply migrations
 ```
+
+## Deployment
+
+See [`docs/deployment.md`](docs/deployment.md) for the full Vercel + Supabase
+production setup (environment variables, URL configuration, and the
+post-deploy verification checklist).
 
 ## Project structure
 

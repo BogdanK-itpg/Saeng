@@ -9,6 +9,32 @@ is `docs/idea.md`; the master process is `docs/WORKPLAN.md`; the full plan is
 
 ---
 
+## Recent change — Phase 15 deployment (2026-08-20)
+
+Deployment readiness complete. The app is production-build clean and fully
+documented for a Vercel + Supabase release. Phase 15 is now complete.
+
+- **`docs/deployment.md`** (new): end-to-end guide covering Supabase production
+  configuration (migrations, confirm-email OFF, site/redirect URLs,
+  `supabase_realtime` publication, storage bucket, optional SMTP), Vercel setup
+  (import, build settings, env vars table with public/server-only guidance),
+  a sample CI workflow (`lint` + `tsc` + `test` + `build`), a 10-item
+  post-deploy verification checklist, and known limitations (per-instance rate
+  limiting, deferred strict CSP, avatar cleanup, email disabled).
+- **README.md** updated: added `npm run test` to Commands, added a Deployment
+  section linking to the guide, and corrected the email-flow wording (the
+  forgot/reset action exists but is not wired to the UI).
+- **Secret hygiene verified**: no JWT/service-role keys or secret-looking values
+  in git-tracked files; `.env*` is gitignored (`.env.example` is the committed
+  template).
+- **`.env.example`** confirmed complete (Supabase URL/publishable/anon keys,
+  service-role key, `NEXT_PUBLIC_APP_URL`).
+
+Verified: `npm run test` ✅ (19 passed) · `npm run lint` ✅ · `npx tsc --noEmit` ✅
+· `npm run build` ✅ (all 17 routes + proxy).
+
+---
+
 ## Recent change — Phase 14 testing (2026-08-20)
 
 Added a practical Vitest unit-test suite for the pure logic, plus the `npm run
@@ -281,6 +307,7 @@ through the new flow.
 [x] Phase 12 — UX/accessibility/responsiveness (mobile nav, skip links, focus-visible, reduced motion, keyboard audio slider, loading states, form a11y; 2026-08-20)
 [x] Phase 13 — Security review (open-redirect fix, DB immutability triggers, storage MIME caps, security headers, API rate limiting; 2026-08-20)
 [x] Phase 14 — Testing (Vitest unit suite: validation, provider mapping, errors, utils, rate limiter; 19 tests passing; 2026-08-20)
+[x] Phase 15 — Deployment (deployment guide + README update + env/secret hygiene verified; lint/tsc/test/build pass; 2026-08-20)
 [ ] Phase 15 — Deployment
 ```
 
@@ -579,6 +606,7 @@ adds a reaction, and surface on `/notifications` (Phase 8 landed 2026-08-20).
 | UX/accessibility/responsiveness (Phase 12) | ✅ mobile nav, skip links, focus-visible, reduced motion, keyboard slider, loading.tsx, form a11y; lint/tsc/build pass; `/`, `/login` 200; `/dashboard` 307 unauth (2026-08-20) |
 | Security review (Phase 13) | ✅ open-redirect fix, immutable-content triggers verified live, storage MIME/size caps, security headers present, API rate limiting; lint/tsc/build pass (2026-08-20) |
 | Testing (Phase 14) | ✅ `npm run test` 19 passing (validation, iTunes mapper, errors, utils, rate limiter); lint/tsc/build pass (2026-08-20) |
+| Deployment (Phase 15) | ✅ prod build clean, `docs/deployment.md` written, README updated, no secrets in git; lint/tsc/test/build pass (2026-08-20) |
 
 ---
 
@@ -646,7 +674,9 @@ recent activity on `/profile`.
 
 Remaining work:
 
-- Phase 15 — Deployment
+- All 15 phases from `docs/WORKPLAN.md` are complete. Remaining items are the
+  deferred gaps below and actually deploying to Vercel using
+  `docs/deployment.md`.
 
 Remaining smaller gaps (deferred):
 
