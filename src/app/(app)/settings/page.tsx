@@ -12,7 +12,7 @@ export default function SettingsPage() {
           Settings
         </h1>
         <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Personalize your Song Shout experience. Preferences are saved on this
+          Personalize your Saeng experience. Preferences are saved on this
           device.
         </p>
       </div>

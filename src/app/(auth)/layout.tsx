@@ -17,7 +17,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           href="/"
           className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50"
         >
-          Song Shout
+          Saeng
         </Link>
       </header>
       <main id="main" className="flex flex-1 flex-col">

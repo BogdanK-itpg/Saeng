@@ -109,7 +109,7 @@ export function SettingsForm() {
     <div className="space-y-6">
       <Section
         title="Appearance"
-        description="Choose how Song Shout looks. Saved on this device."
+        description="Choose how Saeng looks. Saved on this device."
       >
         <div className="space-y-2">
           <p className="text-sm text-zinc-500 dark:text-zinc-400">Theme</p>

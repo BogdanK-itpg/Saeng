@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Song Shout",
-    template: "%s · Song Shout",
+    default: "Saeng",
+    template: "%s · Saeng",
   },
   description:
     "Send songs to friends instead of (or alongside) text. Pick a friend, pick a song, send a shout.",

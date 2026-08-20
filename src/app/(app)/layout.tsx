@@ -66,7 +66,7 @@ export default async function AppLayout({
             href="/dashboard"
             className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50"
           >
-            Song Shout
+            Saeng
           </Link>
           <nav className="hidden items-center gap-1 sm:flex">{navItems}</nav>
           <div className="flex items-center gap-3">

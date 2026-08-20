@@ -11,7 +11,7 @@ export default function Home() {
       </a>
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5">
         <span className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Song Shout
+          Saeng
         </span>
         <nav className="flex items-center gap-3">
           <Link
@@ -38,7 +38,7 @@ export default function Home() {
             Say it with a song.
           </h1>
           <p className="mx-auto max-w-xl text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Song Shout is how friends share what music means to them. Instead of
+            Saeng is how friends share what music means to them. Instead of
             writing “this reminded me of you,” pick a friend, pick a song, and
             send a shout.
           </p>
@@ -90,7 +90,7 @@ export default function Home() {
       </main>
 
       <footer className="mx-auto w-full max-w-6xl px-6 py-6 text-center text-xs text-zinc-500 dark:text-zinc-500">
-        Song Shout stores song references, never audio. Playback and links come
+        Saeng stores song references, never audio. Playback and links come
         from your music provider.
       </footer>
     </div>
