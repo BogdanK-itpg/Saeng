@@ -9,6 +9,32 @@ is `docs/idea.md`; the master process is `docs/WORKPLAN.md`; the full plan is
 
 ---
 
+## Recent change — Phase 14 testing (2026-08-20)
+
+Added a practical Vitest unit-test suite for the pure logic, plus the `npm run
+test` script. Phase 14 is now complete.
+
+- **Tooling**: `vitest` (dev dependency) + `vitest.config.mts` (maps the `@/`
+  alias). `npm run test` → 19 tests, all passing (~200 ms).
+- **Coverage** (`tests/`):
+  - `validation.test.ts` — username, password/register, shout message (trim +
+    280 limit), reaction (1–32 chars), login, profile schemas.
+  - `itunes-mapper.test.ts` — provider normalization, artwork size bump,
+    optional-field null handling.
+  - `unit.test.ts` — `AppError` classification + `toUserMessage` (only user
+    errors surface verbatim), `authEmailForUsername` (synthetic domain),
+    `cn`, and the `rateLimit` limiter (window + retry-after).
+- **Integration/E2E**: the DB-level flows (auth, friend requests, shout
+  creation, notifications, reactions, RLS, triggers) were already verified live
+  against the remote Supabase project during Phases 3–13 and are logged in the
+  Verification table below. The manual two-user browser checklist in "Where I
+  left off" remains the E2E acceptance run for a full browser pass.
+
+Verified: `npm run test` ✅ (19 passed) · `npm run lint` ✅ · `npx tsc --noEmit` ✅
+· `npm run build` ✅.
+
+---
+
 ## Recent change — Phase 13 security review (2026-08-20)
 
 Full security review of auth, RLS, actions, storage, API routes, and headers.
@@ -254,7 +280,7 @@ through the new flow.
 [x] Phase 11 — Main application pages (profile stats + recent activity; 2026-08-20)
 [x] Phase 12 — UX/accessibility/responsiveness (mobile nav, skip links, focus-visible, reduced motion, keyboard audio slider, loading states, form a11y; 2026-08-20)
 [x] Phase 13 — Security review (open-redirect fix, DB immutability triggers, storage MIME caps, security headers, API rate limiting; 2026-08-20)
-[ ] Phase 14 — Testing
+[x] Phase 14 — Testing (Vitest unit suite: validation, provider mapping, errors, utils, rate limiter; 19 tests passing; 2026-08-20)
 [ ] Phase 15 — Deployment
 ```
 
@@ -552,6 +578,7 @@ adds a reaction, and surface on `/notifications` (Phase 8 landed 2026-08-20).
 | Dashboard Sent section + reactions | ✅ sent shouts listed with recipient's reaction; custom emoji input in picker; embed query shape verified live; `/dashboard` → 307 unauth (2026-08-20) |
 | UX/accessibility/responsiveness (Phase 12) | ✅ mobile nav, skip links, focus-visible, reduced motion, keyboard slider, loading.tsx, form a11y; lint/tsc/build pass; `/`, `/login` 200; `/dashboard` 307 unauth (2026-08-20) |
 | Security review (Phase 13) | ✅ open-redirect fix, immutable-content triggers verified live, storage MIME/size caps, security headers present, API rate limiting; lint/tsc/build pass (2026-08-20) |
+| Testing (Phase 14) | ✅ `npm run test` 19 passing (validation, iTunes mapper, errors, utils, rate limiter); lint/tsc/build pass (2026-08-20) |
 
 ---
 
@@ -619,7 +646,6 @@ recent activity on `/profile`.
 
 Remaining work:
 
-- Phase 14 — Testing
 - Phase 15 — Deployment
 
 Remaining smaller gaps (deferred):
