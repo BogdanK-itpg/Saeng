@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { requireUser } from "@/lib/auth/current-user";
@@ -69,7 +70,7 @@ export async function sendShoutAction(
   const { receiverId, song, message: shoutMessage } = parsed.data;
 
   try {
-    const shout = await sendShout({
+    await sendShout({
       senderId: user.id,
       receiverId,
       song: {
@@ -85,9 +86,10 @@ export async function sendShoutAction(
       },
       message: shoutMessage,
     });
-    revalidatePath("/send");
-    return { success: "Shout sent.", shoutId: shout.id };
   } catch (err) {
     return { error: message(err) };
   }
+
+  revalidatePath("/dashboard");
+  redirect("/dashboard");
 }
