@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/current-user";
 import { AppError, toUserMessage } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getAvatarPublicUrl, updateProfile } from "@/services/profiles";
 import { profileSchema } from "@/lib/validation/schemas";
 
@@ -51,6 +52,25 @@ export async function setAvatarAction(formData: FormData): Promise<void> {
   const path = formData.get("path");
   if (typeof path !== "string" || !path.startsWith(`${user.id}/`)) {
     throw AppError.user("Invalid avatar path.");
+  }
+
+  // Server-side re-validation of the uploaded object: only image files may
+  // become an avatar URL (client-side checks are not a security boundary).
+  const admin = createAdminClient();
+  const { data: object } = await admin
+    .from("storage.objects")
+    .select("metadata")
+    .eq("bucket_id", "avatars")
+    .eq("name", path)
+    .maybeSingle();
+  const mime = object?.metadata?.mimetype;
+  const size = object?.metadata?.size;
+  const ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"];
+  if (!mime || !ALLOWED_MIME.includes(mime)) {
+    throw AppError.user("Only JPG, PNG, or WebP images can be used as an avatar.");
+  }
+  if (typeof size === "number" && size > 5 * 1024 * 1024) {
+    throw AppError.user("Image must be 5 MB or smaller.");
   }
 
   const supabase = await createClient();

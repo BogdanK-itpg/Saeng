@@ -9,6 +9,51 @@ is `docs/idea.md`; the master process is `docs/WORKPLAN.md`; the full plan is
 
 ---
 
+## Recent change — Phase 13 security review (2026-08-20)
+
+Full security review of auth, RLS, actions, storage, API routes, and headers.
+Phase 13 is now complete.
+
+**Reviewed & confirmed sound:**
+- Proxy guards protected routes; signed-in users bounced off `/login`/`/register`.
+- All server actions call `requireUser()` and validate input with zod (uuid,
+  username, display name, password, song payload, shout message ≤280, reaction).
+- RLS covers all 7 tables + avatars storage; reactions/sends restricted by
+  participant/recipient/friend checks; no `using (true)` on sensitive data
+  (only profile/song metadata needed for public search — documented).
+- Artwork proxy is an authenticated, https-only, host-allowlisted image proxy
+  (`.mzstatic.com` / `itunes.apple.com`) — not an open SSRF.
+- Secrets live only in server-side env; service-role key never client-imported.
+
+**Fixed / hardened:**
+- **Open redirect**: login's `next` param must match `/^\/[^/\\]/` (rejects
+  protocol-relative `//host` and backslash tricks).
+- **DB immutability** (migration `0012_harden_updates.sql`, applied to remote):
+  triggers now block any client change to immutable columns — shout
+  participants/song/message/reply, reaction shout/owner, notification
+  type/actor/entity — and only the recipient may update a shout (seen_at).
+  Verified live: illegal message change and reaction move both raise.
+- **Avatar uploads**: storage INSERT policy now restricts to image MIME types
+  + 5 MB cap, and `setAvatarAction` re-validates the uploaded object's stored
+  metadata server-side before persisting the avatar URL (client checks are not
+  a security boundary).
+- **Security headers** in `next.config.ts`: `X-Content-Type-Options: nosniff`,
+  `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`,
+  `Permissions-Policy` (no camera/mic/geo). Verified present on responses.
+- **Rate limiting** (`src/lib/rate-limit.ts`) on `/api/songs/search` and
+  `/api/artwork` (60 req/min/IP, 429 + `Retry-After`).
+
+**Documented limitation:** rate limiting is in-memory (per instance). On a
+multi-instance Vercel deployment it should be backed by a shared store
+(Upstash/Postgres). A strict CSP is intentionally deferred: the FOUC-prevention
+inline script requires nonce/hash infrastructure; `X-Frame-Options`/nosniff are
+the immediate wins.
+
+Verified: lint ✅ · tsc ✅ · build ✅; triggers block illegal updates live;
+security headers present on responses; migration `0012` applied (local + remote).
+
+---
+
 ## Recent change — Phase 12 UX/accessibility/responsiveness (2026-08-20)
 
 Full UX/accessibility pass on top of the earlier settings + glow work. Phase 12
@@ -208,7 +253,7 @@ through the new flow.
 [x] Phase 10 — Dashboard (recent shouts + quick send + prominent Send Shout, 2026-08-20)
 [x] Phase 11 — Main application pages (profile stats + recent activity; 2026-08-20)
 [x] Phase 12 — UX/accessibility/responsiveness (mobile nav, skip links, focus-visible, reduced motion, keyboard audio slider, loading states, form a11y; 2026-08-20)
-[ ] Phase 13 — Security review
+[x] Phase 13 — Security review (open-redirect fix, DB immutability triggers, storage MIME caps, security headers, API rate limiting; 2026-08-20)
 [ ] Phase 14 — Testing
 [ ] Phase 15 — Deployment
 ```
@@ -494,7 +539,7 @@ adds a reaction, and surface on `/notifications` (Phase 8 landed 2026-08-20).
 | `npm run lint` | ✅ passes |
 | `npx tsc --noEmit` | ✅ passes |
 | `npm run build` | ✅ passes |
-| Migrations applied to Supabase | ✅ all 11 on `socrwlpwacahxioyboiv` (0011 = notifications realtime, 2026-08-20) |
+| Migrations applied to Supabase | ✅ all 12 on `socrwlpwacahxioyboiv` (0011 = notifications realtime, 0012 = update hardening, 2026-08-20) |
 | Auth register/login flow tested live | ✅ username-based: signup returns a session (confirm-email OFF), profile trigger fires, login by username works, duplicate username blocked (2026-08-20) |
 | Friend system smoke test (routes/proxy) | ✅ unauthenticated `/friends` → 307; build passes |
 | Music provider (iTunes) live search | ✅ normalized results from real API; route 401 when unauthenticated |
@@ -506,6 +551,7 @@ adds a reaction, and surface on `/notifications` (Phase 8 landed 2026-08-20).
 | Profile stats + activity (Phase 11) | ✅ stats grid + recent activity render; `/profile` → 307 unauth; lint/tsc/build pass (2026-08-20) |
 | Dashboard Sent section + reactions | ✅ sent shouts listed with recipient's reaction; custom emoji input in picker; embed query shape verified live; `/dashboard` → 307 unauth (2026-08-20) |
 | UX/accessibility/responsiveness (Phase 12) | ✅ mobile nav, skip links, focus-visible, reduced motion, keyboard slider, loading.tsx, form a11y; lint/tsc/build pass; `/`, `/login` 200; `/dashboard` 307 unauth (2026-08-20) |
+| Security review (Phase 13) | ✅ open-redirect fix, immutable-content triggers verified live, storage MIME/size caps, security headers present, API rate limiting; lint/tsc/build pass (2026-08-20) |
 
 ---
 
@@ -573,8 +619,6 @@ recent activity on `/profile`.
 
 Remaining work:
 
-- Phase 12 — UX/accessibility/responsiveness: `/settings` + ambient glow landed (2026-08-20); full pass pending
-- Phase 13 — Security review
 - Phase 14 — Testing
 - Phase 15 — Deployment
 

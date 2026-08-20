@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 // Only cover-art metadata is proxied (never audio). Restrict to the provider
 // CDN hosts the app can produce artwork URLs from, so this isn't an open proxy.
@@ -15,6 +16,14 @@ const ALLOWED_HOST_SUFFIXES = [".mzstatic.com", "itunes.apple.com"];
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return new NextResponse("Unauthorized", { status: 401 });
+
+  const limit = rateLimit(`artwork:${clientIp(request)}`);
+  if (!limit.ok) {
+    return new NextResponse("Too many requests", {
+      status: 429,
+      headers: { "Retry-After": String(limit.retryAfter) },
+    });
+  }
 
   const raw = request.nextUrl.searchParams.get("url");
   if (!raw) return new NextResponse("Missing url", { status: 400 });

@@ -82,7 +82,12 @@ export async function loginAction(
   }
 
   const next = formData.get("next");
-  const nextUrl = typeof next === "string" && next.startsWith("/") ? next : "/dashboard";
+  // Reject protocol-relative (`//host`) and backslash (`/\`) values so the
+  // `next` param can never be an open redirect off the app.
+  const nextUrl =
+    typeof next === "string" && /^\/[^/\\]/.test(next)
+      ? next
+      : "/dashboard";
   redirect(nextUrl);
 }
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { ProviderError } from "@/lib/music/types";
 import { getProvider } from "@/lib/music/registry";
 
@@ -13,6 +14,14 @@ export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
+  const limit = rateLimit(`search:${clientIp(request)}`);
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: "Too many requests." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } },
+    );
   }
 
   const query = request.nextUrl.searchParams.get("q")?.trim() ?? "";
